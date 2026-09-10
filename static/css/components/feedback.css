@@ -1,0 +1,40 @@
+/* Avisos, erros, loading e animação do indicador de espera. */
+
+.aviso,.erro,.loading {
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 15px;
+  margin-bottom: 20px;
+}
+
+.aviso {
+  background: #ffebbf;
+  border: 1px solid var(--amarelo);
+}
+
+.erro {
+  background: #ffe2dd;
+  border: 2px solid var(--vermelho);
+}
+
+.loading {
+  background: #e0f1ed;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid #2a9d8f40;
+  border-top-color: var(--verde);
+  border-radius: 50%;
+  animation: girar .8s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}

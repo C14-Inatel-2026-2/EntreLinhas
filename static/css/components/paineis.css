@@ -1,0 +1,15 @@
+/* Superfície dos painéis compartilhados pelas telas. */
+
+.painel {
+  background: var(--branco);
+  border: 2px solid var(--borda);
+  border-radius: 22px;
+  box-shadow: 0 6px 0 #ead9bd66;
+  padding: 24px;
+}
+
+@media(max-width:650px) {
+  .painel {
+    padding: 18px;
+  }
+}

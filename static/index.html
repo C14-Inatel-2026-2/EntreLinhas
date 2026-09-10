@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<!-- Estrutura semântica das telas de início, partida e resultado do Entre Linhas. -->
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#E63946">
+  <title>Entre Linhas · Uma dica, muitas conexões</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="cabecalho">
+    <a class="marca" href="index.html" aria-label="Entre Linhas, início">entre<span>linhas<span class="ponto">✦</span></span></a>
+    <span class="selo">Juntos, a gente conecta.</span>
+  </header>
+  <main id="aplicativo">
+    <p id="aviso-demo" class="aviso" hidden>Modo demonstração · Duas rodadas ilustrativas com resultados fixos, independentemente do palpite.</p>
+    <div id="erro" class="erro" role="alert" hidden></div>
+    <p id="loading" class="loading" role="status" hidden><span class="spinner" aria-hidden="true"></span> Conectando as ideias…</p>
+
+    <section id="tela-inicial" class="tela abertura" aria-labelledby="titulo-inicial">
+      <div class="apresentacao">
+        <p class="sobretitulo">UM JOGO DE CONEXÕES E BOAS IDEIAS</p>
+        <h1 id="titulo-inicial" tabindex="-1">Uma palavra.<br>Muitas <span>possibilidades.</span></h1>
+        <p class="introducao">O que duas palavras têm em comum? Junte a turma, siga as dicas e descubra o que existe entre as linhas.</p>
+        <div class="etiquetas"><span>2–6 jogadores</span><span>Cooperativo</span><span>8+ anos</span></div>
+        <form id="form-iniciar" class="painel iniciar">
+          <label for="jogadores">Quantas pessoas vão jogar?</label>
+          <div class="linha-formulario">
+            <input id="jogadores" name="jogadores" type="number" min="2" max="6" value="2" required inputmode="numeric">
+            <button type="submit">Iniciar Partida <span aria-hidden="true">→</span></button>
+          </div>
+          <p class="ajuda">Todo mundo no mesmo time. Cada ideia conta!</p>
+        </form>
+      </div>
+      <aside class="ilustracao" aria-label="Exemplo: mar e viagem se conectam pela dica cruzeiro">
+        <span class="estrela estrela-um" aria-hidden="true">✦</span>
+        <div class="carta carta-mar"><span>A</span><strong>mar</strong><span aria-hidden="true">≈</span></div>
+        <div class="carta carta-viagem"><span>3</span><strong>viagem</strong><span aria-hidden="true">↗</span></div>
+        <div class="carta-dica"><small>UMA DICA, UMA CONEXÃO</small><strong>cruzeiro!</strong><span>mar + viagem = A3</span></div>
+        <span class="estrela estrela-dois" aria-hidden="true">✳</span>
+      </aside>
+      <div class="como-jogar" aria-label="Como jogar">
+        <article><span class="numero">1</span><div><h2>Conecte duas palavras</h2><p>Quem dá a dica vê uma coordenada secreta.</p></div></article>
+        <article><span class="numero">2</span><div><h2>Dê uma única dica</h2><p>Uma palavra para ligar a linha à coluna.</p></div></article>
+        <article><span class="numero">3</span><div><h2>Descubram juntos</h2><p>A turma escolhe a coordenada. Vamos acertar?</p></div></article>
+      </div>
+    </section>
+
+    <!-- Etapa intermediária: os campos são gerados conforme o tamanho da turma. -->
+    <section id="tela-nomes-jogadores" class="tela tela-nomes" aria-labelledby="titulo-nomes" hidden>
+      <p class="sobretitulo">ANTES DA PRIMEIRA CONEXÃO</p>
+      <h1 id="titulo-nomes" tabindex="-1">Quem está <span>no time?</span></h1>
+      <p>Como podemos chamar cada pessoa? Preencha os nomes da turma para começar.</p>
+      <form id="form-nomes" class="painel" novalidate>
+        <div id="campos-nomes" class="campos-nomes"></div>
+        <p id="ajuda-nomes" class="ajuda">Preencha todos os nomes para liberar o início da partida.</p>
+        <p id="erro-nomes" class="erro-nomes" role="alert" hidden></p>
+        <div class="acoes-nomes">
+          <button id="voltar-nomes" class="botao-texto" type="button"><span aria-hidden="true">←</span> Voltar</button>
+          <button id="comecar-jogo" type="submit" aria-disabled="true" aria-describedby="ajuda-nomes">Começar a jogar <span aria-hidden="true">→</span></button>
+        </div>
+      </form>
+    </section>
+
+    <section id="tela-jogo" class="tela" aria-labelledby="titulo-jogo" hidden>
+      <div class="topo-jogo"><div><p class="sobretitulo">CADA DICA APROXIMA O TIME</p><h1 id="titulo-jogo" tabindex="-1">Vamos conectar?</h1><p id="turno"></p></div>
+        <div class="placar" aria-label="Placar" aria-live="polite"><span class="acertos"><strong id="acertos">0</strong> acertos</span><span class="erros"><strong id="erros">0</strong> erros</span></div>
+      </div>
+      <div class="area-jogo">
+        <div class="painel painel-tabuleiro"><div class="legenda-tabuleiro"><h2>O tabuleiro da turma</h2><span>Letra + número</span></div><div class="rolagem-tabuleiro" tabindex="0" role="region" aria-label="Tabuleiro, role horizontalmente se necessário"><div id="tabuleiro" class="tabuleiro" role="table" aria-label="Palavras por linha e coluna"></div></div><p class="ajuda">Cliquem na célula onde vocês acham que a dica se encaixa.</p></div>
+        <aside class="painel painel-turno" aria-label="Ações da rodada">
+          <p id="mensagem-rodada" class="mensagem-rodada" role="status"></p>
+          <form id="form-dica" hidden>
+            <span class="etapa">A VEZ DE DAR UMA DICA</span><h2>Qual é a conexão?</h2>
+            <p id="instrucao-segredo">Passe a tela para quem vai dar a dica. Só essa pessoa pode ver a carta!</p>
+            <button id="revelar-carta" class="botao-secundario" type="button" aria-expanded="false" aria-controls="carta-secreta">Ver minha carta</button>
+            <p id="carta-secreta" class="segredo" hidden></p>
+            <label for="dica">Sua dica em uma palavra</label><input id="dica" name="dica" type="text" placeholder="Uma ideia brilhante…" required pattern="\S+" maxlength="60" autocomplete="off" aria-describedby="ajuda-dica"><p id="ajuda-dica" class="ajuda">Envie a dica antes de passar a tela para a turma.</p><button type="submit">Enviar dica <span aria-hidden="true">→</span></button>
+          </form>
+          <form id="form-palpite" hidden>
+            <span class="etapa">A VEZ DE ADIVINHAR</span><h2>Juntem as ideias!</h2><p>A dica da rodada é:</p><p id="dica-atual" class="dica-atual"></p>
+            <p id="selecao-palpite" class="ajuda" role="status">Nenhuma coordenada selecionada.</p><button id="confirmar-palpite" type="submit" disabled>Confirmar palpite <span aria-hidden="true">→</span></button>
+          </form>
+          <button id="atualizar-placar" class="botao-texto" type="button">↻ Atualizar placar</button>
+        </aside>
+      </div>
+    </section>
+
+    <section id="tela-final" class="tela encerramento" aria-labelledby="titulo-final" hidden>
+      <span class="emblema-final" aria-hidden="true">✦</span><p class="sobretitulo">CADA CONEXÃO FOI UMA CONQUISTA</p><h1 id="titulo-final" tabindex="-1">Boas ideias, <span>bom time!</span></h1><p>A partida terminou. Olha o que vocês construíram juntos:</p>
+      <div class="placar placar-final"><span class="acertos"><strong id="acertos-finais">0</strong> acertos</span><span class="erros"><strong id="erros-finais">0</strong> erros</span></div><p id="resumo-final"></p><button id="jogar-novamente" type="button">Jogar Novamente <span aria-hidden="true">↗</span></button>
+    </section>
+    <noscript><p class="erro">Ative o JavaScript no navegador para jogar Entre Linhas.</p></noscript>
+  </main>
+  <footer>Feito para pensar junto. <span aria-hidden="true">✦</span> Entre Linhas</footer>
+</body>
+</html>

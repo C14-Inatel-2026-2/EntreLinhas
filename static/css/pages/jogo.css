@@ -1,0 +1,102 @@
+/* Tela de jogo: distribuição dos painéis e ações da rodada. */
+
+.topo-jogo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.topo-jogo h1 {
+  font-size: 44px;
+  margin-bottom: 10px;
+}
+
+.topo-jogo p {
+  margin-bottom: 8px;
+}
+
+.area-jogo {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 310px;
+  gap: 24px;
+}
+
+.etapa {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #915700;
+}
+
+.painel-turno p {
+  font-size: 16px;
+}
+
+.painel-turno label {
+  font-size: 16px;
+  margin-top: 20px;
+}
+
+.painel-turno button {
+  width: 100%;
+  margin-top: 16px;
+  padding: 10px;
+}
+
+.painel-turno .ajuda {
+  font-size: 13px;
+}
+
+.mensagem-rodada:empty {
+  display: none;
+}
+
+.mensagem-rodada {
+  border-bottom: 1px dashed var(--borda);
+  padding-bottom: 15px;
+}
+
+.segredo,.dica-atual {
+  background: #ffebbf;
+  border: 2px dashed var(--amarelo);
+  padding: 16px;
+  border-radius: 14px;
+  margin-top: 18px;
+  text-align: center;
+  font-weight: 800;
+}
+
+.painel-turno .dica-atual {
+  font-size: 30px;
+  overflow-wrap: anywhere;
+}
+
+#confirmar-palpite:disabled {
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 0 var(--azul);
+  background: var(--vermelho);
+}
+
+@media(max-width:950px) {
+  .area-jogo {
+    grid-template-columns: 1fr;
+  }
+
+  .painel-turno {
+    max-width: none;
+  }
+}
+
+@media(max-width:650px) {
+  .topo-jogo {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topo-jogo h1 {
+    font-size: 37px;
+  }
+}

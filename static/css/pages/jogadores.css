@@ -1,0 +1,56 @@
+/* Tela de nomes: campos, ações, validação e layout responsivo. */
+
+.tela-nomes {
+  max-width: 720px;
+  margin: 35px auto;
+}
+
+.tela-nomes h1 {
+  font-size: clamp(36px,4.8vw,54px);
+}
+
+.campos-nomes {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 20px;
+}
+
+.acoes-nomes {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.erro-nomes {
+  color: #a82031;
+  font-size: 14px;
+  margin: 10px 0 0;
+}
+
+.campos-nomes input[aria-invalid="true"] {
+  border-color: var(--vermelho);
+}
+
+#comecar-jogo[aria-disabled="true"] {
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 0 var(--azul);
+}
+
+@media(max-width:650px) {
+  .campos-nomes {
+    grid-template-columns: 1fr;
+  }
+
+  .acoes-nomes {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .tela-nomes {
+    margin: 20px auto;
+  }
+}
