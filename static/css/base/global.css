@@ -1,0 +1,69 @@
+/* Normalização, tipografia e acessibilidade globais, incluindo movimento reduzido. */
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none!important;
+}
+
+body {
+  margin: 0;
+  background: var(--creme);
+  color: var(--azul);
+  font-family: "Baloo 2","Trebuchet MS",sans-serif;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+button,input {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--azul);
+  outline-offset: 5px;
+}
+
+h1,h2,p {
+  margin-top: 0;
+}
+
+h1 {
+  font-size: clamp(36px,4.8vw,66px);
+  line-height: 1.08;
+  letter-spacing: -1.5px;
+  margin-bottom: 22px;
+  font-weight: 800;
+}
+
+h1 span {
+  color: var(--vermelho);
+}
+
+h2 {
+  font-size: 24px;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+
+.sobretitulo {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-bottom: 18px;
+}
+
+.ajuda {
+  font-size: 14px;
+  margin: 12px 0 0;
+  line-height: 1.4;
+}
+
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after {
+    animation: none!important;
+    transition: none!important;
+  }
+}

@@ -1,0 +1,240 @@
+/* Tela inicial: apresentação, ilustração, formulário e instruções. */
+
+.abertura {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 30px 50px;
+  align-items: center;
+  padding-top: 30px;
+}
+
+.introducao {
+  font-size: 19px;
+  max-width: 510px;
+  margin-bottom: 20px;
+}
+
+.etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-bottom: 28px;
+}
+
+.etiquetas span {
+  border: 1px solid var(--borda);
+  padding: 3px 13px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.iniciar {
+  max-width: 490px;
+}
+
+.linha-formulario {
+  display: flex;
+  gap: 14px;
+}
+
+.linha-formulario input {
+  width: 80px;
+}
+
+.linha-formulario button {
+  flex: 1;
+}
+
+.ilustracao {
+  height: 440px;
+  position: relative;
+  background: radial-gradient(ellipse,#f9e7c7 0%,#f9e7c7 55%,transparent 56%);
+}
+
+.carta {
+  position: absolute;
+  top: 38px;
+  width: 175px;
+  height: 225px;
+  border: 3px solid var(--azul);
+  border-radius: 22px;
+  box-shadow: 6px 8px 0 #1d35571a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  font-size: 30px;
+}
+
+.carta>span:first-child {
+  align-self: flex-start;
+  font-size: 21px;
+}
+
+.carta strong {
+  font-size: 35px;
+}
+
+.carta>span:last-child {
+  font-size: 50px;
+  line-height: 1;
+}
+
+.carta-mar {
+  background: #bfe5df;
+  left: 25px;
+  transform: rotate(-13deg);
+}
+
+.carta-viagem {
+  background: #ffda87;
+  right: 14px;
+  top: 65px;
+  transform: rotate(12deg);
+}
+
+.carta-dica {
+  position: absolute;
+  bottom: 25px;
+  left: 10%;
+  width: 82%;
+  background: var(--vermelho);
+  color: white;
+  border: 3px solid var(--azul);
+  border-radius: 18px;
+  padding: 16px;
+  text-align: center;
+  transform: rotate(-4deg);
+  box-shadow: 5px 6px 0 #1d35571a;
+  display: flex;
+  flex-direction: column;
+}
+
+.carta-dica small {
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+
+.carta-dica strong {
+  font-size: 40px;
+  line-height: 1.3;
+}
+
+.carta-dica>span {
+  font-size: 15px;
+}
+
+.estrela {
+  position: absolute;
+  color: var(--vermelho);
+  font-size: 50px;
+}
+
+.estrela-um {
+  right: 0;
+  top: -10px;
+}
+
+.estrela-dois {
+  left: -12px;
+  bottom: 65px;
+  color: var(--verde);
+}
+
+.como-jogar {
+  grid-column: 1/-1;
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 26px;
+  margin-top: 25px;
+  padding-top: 30px;
+  border-top: 2px dashed var(--borda);
+}
+
+.como-jogar article {
+  display: flex;
+  gap: 14px;
+}
+
+.como-jogar h2 {
+  font-size: 18px;
+  margin: 0 0 5px;
+}
+
+.como-jogar p {
+  font-size: 15px;
+  margin: 0;
+}
+
+.numero {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: #ffdfa3;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+@media(max-width:950px) {
+  .abertura {
+    gap: 30px;
+  }
+
+  .carta {
+    width: 145px;
+  }
+
+  .ilustracao {
+    height: 400px;
+  }
+
+  .carta-mar {
+    left: 5px;
+  }
+
+  .carta-viagem {
+    right: 0;
+  }
+}
+
+@media(max-width:650px) {
+  .abertura {
+    grid-template-columns: 1fr;
+    padding-top: 15px;
+  }
+
+  .ilustracao {
+    width: 100%;
+    max-width: 370px;
+    margin: auto;
+    height: 370px;
+    grid-row: 2;
+  }
+
+  .carta {
+    width: 155px;
+    height: 200px;
+  }
+
+  .carta-dica {
+    bottom: 5px;
+  }
+
+  .como-jogar {
+    grid-template-columns: 1fr;
+    margin-top: 8px;
+    gap: 22px;
+  }
+
+  .linha-formulario button {
+    padding: 12px;
+  }
+
+  .linha-formulario {
+    gap: 10px;
+  }
+}

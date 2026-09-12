@@ -1,0 +1,70 @@
+/* Estrutura compartilhada: cabeçalho, marca, área principal e rodapé. */
+
+.cabecalho {
+  max-width: 1200px;
+  margin: auto;
+  padding: 25px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px dashed var(--borda);
+}
+
+.marca {
+  font-size: 31px;
+  font-weight: 800;
+  line-height: .82;
+  color: var(--vermelho);
+  text-decoration: none;
+  letter-spacing: -1px;
+  transform: rotate(-4deg);
+}
+
+.marca>span {
+  display: block;
+  margin-left: 18px;
+}
+
+.ponto {
+  color: var(--amarelo);
+  font-size: 25px;
+  margin-left: 4px;
+}
+
+.selo {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+main {
+  max-width: 1200px;
+  margin: auto;
+  padding: 30px 32px 50px;
+  min-height: 75vh;
+}
+
+footer {
+  padding: 20px;
+  text-align: center;
+  font-size: 14px;
+  border-top: 1px solid var(--borda);
+}
+
+footer span {
+  color: var(--vermelho);
+  margin: 0 12px;
+}
+
+@media(max-width:650px) {
+  .cabecalho {
+    padding: 24px;
+  }
+
+  .selo {
+    font-size: 12px;
+  }
+
+  main {
+    padding: 20px 18px 35px;
+  }
+}

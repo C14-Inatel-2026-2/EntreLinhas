@@ -1,0 +1,72 @@
+/* Botões, inputs e labels compartilhados, com estados de interação. */
+
+button,a,input {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  border: 2px solid var(--azul);
+  border-radius: 14px;
+  padding: 12px 24px;
+  background: var(--vermelho);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--azul);
+  transition: transform .18s,box-shadow .18s,background .18s;
+}
+
+button:hover {
+  background: #cb283b;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--azul);
+}
+
+button:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--azul);
+}
+
+button:disabled {
+  opacity: .55;
+  cursor: wait;
+  transform: none;
+}
+
+input {
+  min-width: 0;
+  width: 100%;
+  padding: 12px 15px;
+  background: var(--branco);
+  border: 2px solid var(--borda);
+  border-radius: 12px;
+  color: var(--azul);
+}
+
+label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.botao-secundario {
+  background: #ffdfa3;
+  color: var(--azul);
+}
+
+.botao-secundario:hover {
+  background: #f9cd7d;
+}
+
+.botao-texto {
+  background: transparent;
+  color: var(--azul);
+  border: 0;
+  box-shadow: none;
+  font-size: 14px;
+}
+
+.botao-texto:hover {
+  background: var(--creme);
+  box-shadow: none;
+}

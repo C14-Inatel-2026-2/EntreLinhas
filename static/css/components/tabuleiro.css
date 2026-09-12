@@ -1,0 +1,142 @@
+/* Grade, cabeçalhos, células e estados de seleção; inclui responsividade e animação de acerto. */
+
+.legenda-tabuleiro {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.legenda-tabuleiro h2 {
+  font-size: 21px;
+}
+
+.legenda-tabuleiro>span {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.rolagem-tabuleiro {
+  overflow-x: auto;
+  padding: 6px 4px 12px;
+}
+
+.tabuleiro {
+  display: grid;
+  gap: 8px;
+}
+
+.linha-tabuleiro {
+  display: grid;
+  grid-auto-columns: minmax(76px,1fr);
+  grid-auto-flow: column;
+  gap: 8px;
+}
+
+.celula {
+  min-height: 85px;
+  border-radius: 13px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 8px;
+  border: 2px solid var(--borda);
+  background: var(--creme);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.celula small {
+  font-size: 12px;
+}
+
+.celula-cabecalho {
+  background: #ffebbf;
+  border-color: #f5d698;
+  font-size: 15px;
+}
+
+.celula-canto {
+  border-color: transparent;
+  background: transparent;
+  font-size: 12px;
+}
+
+.celula-vazia {
+  color: #5e6c7d;
+  border-style: dashed;
+}
+
+.celula-acerto {
+  background: var(--verde);
+  border-color: #20796e;
+  color: white;
+  box-shadow: 0 3px 0 #1d355726;
+}
+
+.novo-acerto {
+  animation: acertar .4s ease-out;
+}
+
+.espaco-celula {
+  display: grid;
+  min-width: 0;
+}
+
+button.celula-vazia {
+  width: 100%;
+  margin: 0;
+  box-shadow: none;
+  transform: none;
+  color: var(--azul);
+  transition: background .18s,border-color .18s;
+}
+
+button.celula-vazia:disabled {
+  opacity: 1;
+  cursor: default;
+  background: var(--creme);
+  box-shadow: none;
+  transform: none;
+}
+
+button.celula-vazia:enabled:hover {
+  background: #ffebbf;
+  border-style: solid;
+  border-color: var(--amarelo);
+  box-shadow: none;
+  transform: none;
+}
+
+button.celula-vazia.celula-selecionada {
+  background: #ffebbf;
+  border: 2px solid var(--azul);
+}
+
+button.celula-vazia.celula-selecionada:enabled:hover {
+  border-color: var(--azul);
+}
+
+@keyframes acertar {
+  0% {
+    transform: scale(.85);
+  }
+
+  60% {
+    transform: scale(1.06);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media(max-width:650px) {
+  .legenda-tabuleiro {
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 12px;
+  }
+}

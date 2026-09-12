@@ -58,11 +58,28 @@ pytest
 
 ```text
 entre-linhas/
+├── static/                # Front-end web (SPA vanilla)
+│   ├── index.html
+│   ├── README.md          # Guia de execução e contrato da API
+│   ├── css/
+│   │   ├── style.css      # Entrada dos estilos
+│   │   ├── base/          # Variáveis, tipografia e acessibilidade
+│   │   ├── layout/        # Estrutura compartilhada
+│   │   ├── components/    # Controles, painéis, feedback, placar e tabuleiro
+│   │   └── pages/         # Início, jogadores, jogo e resultado
+│   └── js/
+│       ├── app.js
+│       ├── config.js
+│       ├── services/
+│       ├── ui/
+│       └── utils/
 ├── src/
 │   └── __init__.py
 ├── tests/
-│   └── test_setup.py
+│   └── test_baralho.py
 ├── pytest.ini
 ├── requirements.txt
 └── README.md
 ```
+
+Para executar e manter a interface web, consulte o [guia do front-end](static/README.md).

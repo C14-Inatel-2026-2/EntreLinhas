@@ -1,0 +1,17 @@
+/* Entrada única dos estilos. A ordem mantém a base antes dos componentes e das telas.
+ * Edite cada responsabilidade em seu arquivo; mantenha este arquivo só com imports.
+ * As media queries ficam junto ao componente ou à tela correspondente.
+ */
+
+@import url("./base/variaveis.css");
+@import url("./base/global.css");
+@import url("./layout/estrutura.css");
+@import url("./components/controles.css");
+@import url("./components/paineis.css");
+@import url("./components/feedback.css");
+@import url("./components/placar.css");
+@import url("./components/tabuleiro.css");
+@import url("./pages/inicio.css");
+@import url("./pages/jogadores.css");
+@import url("./pages/jogo.css");
+@import url("./pages/resultado.css");
