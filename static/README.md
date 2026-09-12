@@ -26,11 +26,9 @@ static/
 │       └── resultado.css
 └── js/
     ├── app.js              # Entrada, navegação, estado visual e tabuleiro
-    ├── config.js           # Modo de demonstração e endereço da API
+    ├── config.js           # Endereço da API
     ├── services/
     │   └── api.js          # Fetch, JSON, timeout e tratamento de erros
-    ├── mocks/
-    │   └── partida.js      # Respostas predefinidas da demonstração
     ├── ui/
     │   └── jogadores.js    # Campos de nomes e validação do formulário
     └── utils/
@@ -48,6 +46,8 @@ python3 -m http.server 8000 --directory static
 
 Abra `http://localhost:8000`. Sirva os arquivos por HTTP: os módulos JavaScript nativos não devem ser abertos diretamente via `file://`.
 
+Esse comando serve somente a interface. Iniciar e jogar uma partida depende da API Flask, ainda não implementada neste repositório. Ao servir o frontend separadamente, configure `API_BASE` para o endereço da API e permita a origem do frontend no backend.
+
 No Flask, configure esta pasta como `static_folder` e abra `/static/index.html`. Os caminhos de CSS e JavaScript são relativos ao HTML; os endpoints da API são relativos à origem. Nenhum bundler é necessário.
 
 ## Fluxo e responsabilidades
@@ -57,11 +57,10 @@ No Flask, configure esta pasta como `static_folder` e abra `/static/index.html`.
 - Estrutura visual: `index.html`; estilos nos arquivos de `css/`, conforme a responsabilidade.
 - Campos e validação dos nomes: `js/ui/jogadores.js`.
 - Navegação, seleção das células e eventos: `js/app.js`.
-- Endereço do backend e modo mock: `js/config.js`.
+- Endereço do backend: `js/config.js`.
 - Transporte HTTP: `js/services/api.js`.
-- Exemplos de estados: `js/mocks/partida.js`.
 
-O cliente exibe os estados enviados pelo backend. A demonstração tem duas rodadas de resultado fixo e não avalia os palpites. Os nomes são registrados no console junto à quantidade; sua inclusão no corpo da requisição permanece como ponto de integração em `iniciarPartida(nomes)`.
+O cliente exibe os estados enviados pelo backend. Os nomes são registrados no console junto à quantidade; sua inclusão no corpo da requisição permanece como ponto de integração em `iniciarPartida(nomes)`.
 
 ## Organização do CSS
 
@@ -78,7 +77,7 @@ Ao criar um novo arquivo, adicione seu import ao grupo correspondente em `style.
 
 ## Contrato da API
 
-Em `js/config.js`, defina `USAR_MOCK = false`. `API_BASE = ""` usa a mesma origem; para outro servidor, configure o endereço e permita a origem do front-end no CORS do backend.
+Em `js/config.js`, `API_BASE = ""` usa a mesma origem; para outro servidor, configure o endereço e permita a origem do front-end no CORS do backend.
 
 | Método | Endpoint | Corpo | Resposta |
 | --- | --- | --- | --- |
@@ -89,7 +88,7 @@ Em `js/config.js`, defina `USAR_MOCK = false`. `API_BASE = ""` usa a mesma orige
 
 Erros HTTP podem retornar `{ "erro": "Mensagem para o jogador" }`.
 
-O estado completo contém `id`, `fase` (`dica`, `palpite` ou `final`), `jogador_dica`, `carta_secreta`, `dica`, `tabuleiro` e `placar`. Os textos `mensagem` e `resumo` são opcionais. Consulte os exemplos completos em `js/mocks/partida.js`.
+O estado completo contém `id`, `fase` (`dica`, `palpite` ou `final`), `jogador_dica`, `carta_secreta`, `dica`, `tabuleiro` e `placar`. Os textos `mensagem` e `resumo` são opcionais.
 
 O tabuleiro contém `linhas` e `colunas` com `id` e `palavra`, além de `celulas` com `coordenada` e `estado` (`vazia` ou `acerto`).
 

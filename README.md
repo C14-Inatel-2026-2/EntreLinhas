@@ -71,13 +71,12 @@ entre-linhas/
 │       ├── app.js
 │       ├── config.js
 │       ├── services/
-│       ├── mocks/
 │       ├── ui/
 │       └── utils/
 ├── src/
 │   └── __init__.py
 ├── tests/
-│   └── test_setup.py
+│   └── test_baralho.py
 ├── pytest.ini
 ├── requirements.txt
 └── README.md

@@ -1,5 +1,4 @@
 /* Entrada da SPA: estado da interface, navegação, tabuleiro e eventos de jogo. */
-import { USAR_MOCK } from "./config.js";
 import { chamarAPI } from "./services/api.js";
 import { elemento } from "./utils/dom.js";
 import { validarPlacar, validarEstado } from "./utils/validacao.js";
@@ -254,7 +253,6 @@ function jogarNovamente() {
   focarTela();
 }
 
-elemento("aviso-demo").hidden = !USAR_MOCK;
 elemento("form-iniciar").addEventListener("submit", abrirTelaDeNomes);
 elemento("form-nomes").addEventListener("submit", confirmarNomes);
 elemento("campos-nomes").addEventListener("input", () => validarNomes());

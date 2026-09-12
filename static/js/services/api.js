@@ -1,10 +1,7 @@
 /* Cliente HTTP: serialização JSON, timeout e mensagens de erro da API. */
-import { USAR_MOCK, API_BASE } from "../config.js";
-import { requisitarMock } from "../mocks/partida.js";
+import { API_BASE } from "../config.js";
 
 export async function chamarAPI(caminho, metodo = "GET", corpo) {
-  // Troque USAR_MOCK em js/config.js: as chamadas reais já estão implementadas abaixo.
-  if (USAR_MOCK) return requisitarMock(caminho, metodo);
   const controlador = new AbortController();
   const timeout = setTimeout(() => controlador.abort(), 15000);
   try {
@@ -26,4 +23,3 @@ export async function chamarAPI(caminho, metodo = "GET", corpo) {
     clearTimeout(timeout);
   }
 }
-
