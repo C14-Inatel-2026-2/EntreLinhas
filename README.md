@@ -1,6 +1,6 @@
-# Entre Linhas — Versão Terminal
+# Entre Linhas — Versão Web
 
-Jogo de cartas cooperativo de dedução para terminal, baseado no jogo físico *Entre Linhas*
+Jogo de cartas cooperativo de dedução para navegador, baseado no jogo físico *Entre Linhas*
 (PaperGames). Projeto desenvolvido para a disciplina C14 - Engenharia de Software (Inatel).
 
 ## Como funciona o jogo
@@ -14,27 +14,41 @@ errando, é descartada. O objetivo é cooperativo: preencher o máximo possível
 ## Tecnologias
 
 - **Linguagem:** Python 3
-- **Interface de terminal:** rich
-- **Gerenciamento de dependências:** pip (`requirements.txt`)
-- **Testes:** pytest
+- **Interface web:** HTML, CSS e JavaScript vanilla
+- **API prevista:** Flask (ainda não implementada)
+- **Gerenciamento de dependências:** pip (`requirements.txt`) e npm (`package-lock.json`)
+- **Testes:** pytest para Python; Cypress com relatório Mochawesome para a interface
 - **Banco de dados:** SQLite
-- **CI/CD:** Jenkins
+- **CI/CD previsto:** Jenkins (pipeline ainda não implementado)
 
 ## Instalação
+
+Requisitos: Python 3.9+ e Node.js 24 (indicado em `.nvmrc`; o Cypress também aceita
+Node.js 22 e 26+). Se usar nvm, execute `nvm install` e `nvm use` na raiz.
 
 ```bash
 git clone <url-do-repositorio>
 cd entre-linhas
 python3 -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
+npm ci
 ```
+
+`requirements.txt` instala Flask para o backend web e pytest para os testes Python.
+SQLite já faz parte do Python. As dependências de teste da interface ficam no
+`package.json`: Cypress, `cypress-mochawesome-reporter` e `start-server-and-test`,
+com versões fixas e dependências transitivas registradas em `package-lock.json`.
+Use `npm ci` ao instalar o projeto a partir do repositório.
 
 ## Execução
 
 ```bash
-python src/main.py
+python3 -m http.server 8000 --bind 127.0.0.1 --directory static
 ```
+
+Abra `http://127.0.0.1:8000`. Esse comando serve a interface web; iniciar uma partida
+real ainda depende da API Flask e de `jogo.py`. A aplicação não possui modo mock.
 
 ## Funcionalidades
 
@@ -50,8 +64,24 @@ python src/main.py
 
 ## Testes
 
+Para executar os testes do navegador e gerar o relatório Mochawesome, com Node.js
+22, 24 ou 26+ e Python 3 instalados:
+
 ```bash
-pytest
+npm ci
+npm run test:e2e
+```
+
+Abra `reports/cypress/index.html` para visualizar o resultado. O servidor de testes
+é iniciado e encerrado automaticamente. Como a API ainda não existe, as respostas
+HTTP são controladas exclusivamente pelo Cypress; a suíte valida a interface,
+não a integração com Python/SQLite. Consulte o [guia dos testes](cypress/README.md)
+para os cenários, modo interativo e limitações.
+
+Os testes Python existentes continuam separados:
+
+```bash
+python3 -m pytest
 ```
 
 ## Estrutura atual do projeto
@@ -74,9 +104,21 @@ entre-linhas/
 │       ├── ui/
 │       └── utils/
 ├── src/
-│   └── __init__.py
+│   ├── __init__.py
+│   ├── Baralho.py
+│   ├── main.py
+│   └── tabuleiro.py
 ├── tests/
 │   └── test_baralho.py
+├── cypress/               # Testes e dados de contrato exclusivos da suíte
+│   ├── e2e/
+│   ├── fixtures/
+│   ├── support/
+│   └── README.md
+├── cypress.config.js
+├── package.json
+├── package-lock.json
+├── db.py
 ├── pytest.ini
 ├── requirements.txt
 └── README.md

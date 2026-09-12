@@ -1,0 +1,25 @@
+{
+  "name": "entre-linhas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Testes de navegador da interface web do Entre Linhas",
+  "engines": {
+    "node": "^22.0.0 || ^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "web": "python3 -m http.server 8000 --bind 127.0.0.1 --directory static",
+    "test": "npm run test:e2e",
+    "test:e2e": "start-server-and-test web http://127.0.0.1:8000 e2e:run",
+    "test:e2e:open": "start-server-and-test web http://127.0.0.1:8000 e2e:open",
+    "e2e:run": "cypress run --browser electron",
+    "e2e:open": "cypress open"
+  },
+  "devDependencies": {
+    "cypress": "16.0.0",
+    "cypress-mochawesome-reporter": "5.0.0",
+    "start-server-and-test": "3.0.12"
+  },
+  "allowScripts": {
+    "cypress@16.0.0": true
+  }
+}

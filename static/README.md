@@ -77,6 +77,10 @@ Ao criar um novo arquivo, adicione seu import ao grupo correspondente em `style.
 
 ## Contrato da API
 
+O fluxo da interface é coberto por [testes Cypress com relatório Mochawesome](../cypress/README.md).
+As respostas controladas desses testes ficam fora de `static/`; executar o frontend
+normalmente continua dependendo da API real.
+
 Em `js/config.js`, `API_BASE = ""` usa a mesma origem; para outro servidor, configure o endereço e permita a origem do front-end no CORS do backend.
 
 | Método | Endpoint | Corpo | Resposta |
