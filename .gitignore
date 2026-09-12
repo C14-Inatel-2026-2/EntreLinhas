@@ -16,24 +16,52 @@ dist/
 *.egg-info/
 .eggs/
 
+# Node.js e cache local de dependências
+node_modules/
+.npm/
+.cache/
+
 # Testes, cobertura e ferramentas de qualidade
 .pytest_cache/
 .coverage
 .coverage.*
+coverage/
+.nyc_output/
 htmlcov/
-reports/
 .mypy_cache/
 .ruff_cache/
 .tox/
 
+# Cypress e relatórios Mochawesome (gerados a cada execução)
+/reports/
+/mochawesome-report/
+/cypress/reports/
+/cypress/screenshots/
+/cypress/videos/
+/cypress/downloads/
+
+# Manter versionados: package.json, package-lock.json, .nvmrc,
+# cypress.config.js, cypress/e2e/, cypress/fixtures/ e cypress/support/.
+
 # Variáveis de ambiente e segredos
 .env
 .env.*
+!.env.example
+!.env.sample
 
 # Bancos de dados e arquivos gerados em execução
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
 *.log
 
 # Editores e IDEs
@@ -44,4 +72,5 @@ reports/
 
 # Sistema operacional
 .DS_Store
+._*
 Thumbs.db

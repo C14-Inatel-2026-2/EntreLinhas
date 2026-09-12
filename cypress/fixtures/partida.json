@@ -1,0 +1,31 @@
+{
+  "id": "partida-teste",
+  "fase": "dica",
+  "jogador_dica": 1,
+  "carta_secreta": "A3",
+  "dica": null,
+  "tabuleiro": {
+    "linhas": [
+      { "id": "A", "palavra": "mar" },
+      { "id": "B", "palavra": "casa" },
+      { "id": "C", "palavra": "música" }
+    ],
+    "colunas": [
+      { "id": "1", "palavra": "noite" },
+      { "id": "2", "palavra": "festa" },
+      { "id": "3", "palavra": "viagem" }
+    ],
+    "celulas": [
+      { "coordenada": "A1", "estado": "vazia" },
+      { "coordenada": "A2", "estado": "vazia" },
+      { "coordenada": "A3", "estado": "vazia" },
+      { "coordenada": "B1", "estado": "vazia" },
+      { "coordenada": "B2", "estado": "vazia" },
+      { "coordenada": "B3", "estado": "vazia" },
+      { "coordenada": "C1", "estado": "vazia" },
+      { "coordenada": "C2", "estado": "vazia" },
+      { "coordenada": "C3", "estado": "vazia" }
+    ]
+  },
+  "placar": { "acertos": 0, "erros": 0 }
+}
