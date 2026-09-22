@@ -20,7 +20,7 @@ RED='\033[0;31m'
 NC='\033[0m' # Sem cor
 
 # ── Diretório raiz do projeto ────────────────────────────────
-ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
 VENV_DIR=".venv"
