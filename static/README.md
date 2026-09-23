@@ -41,14 +41,14 @@ static/
 Na raiz do repositório:
 
 ```sh
-python3 -m http.server 8000 --directory static
+python3 -m flask --app app run --host 127.0.0.1 --port 5000
 ```
 
-Abra `http://localhost:8000`. Sirva os arquivos por HTTP: os módulos JavaScript nativos não devem ser abertos diretamente via `file://`.
+Abra `http://127.0.0.1:5000/static/index.html`. Sirva os arquivos por HTTP: os módulos JavaScript nativos não devem ser abertos diretamente via `file://`.
 
-Esse comando serve somente a interface. Iniciar e jogar uma partida depende da API Flask, ainda não implementada neste repositório. Ao servir o frontend separadamente, configure `API_BASE` para o endereço da API e permita a origem do frontend no backend.
+O Flask serve a interface e a API na mesma origem. O servidor estático isolado é usado pelos testes Cypress com respostas simuladas; ele não oferece as rotas do jogo.
 
-No Flask, configure esta pasta como `static_folder` e abra `/static/index.html`. Os caminhos de CSS e JavaScript são relativos ao HTML; os endpoints da API são relativos à origem. Nenhum bundler é necessário.
+Os caminhos de CSS e JavaScript são relativos ao HTML; os endpoints da API são relativos à origem. Nenhum bundler é necessário.
 
 ## Fluxo e responsabilidades
 
@@ -85,7 +85,7 @@ Em `js/config.js`, `API_BASE = ""` usa a mesma origem; para outro servidor, conf
 
 | Método | Endpoint | Corpo | Resposta |
 | --- | --- | --- | --- |
-| POST | `/partida` | `{ "jogadores": 2 }` | Estado completo |
+| POST | `/partida` | `{ "num_jogadores": 2 }` | Estado completo |
 | POST | `/partida/<id>/dica` | `{ "dica": "cruzeiro" }` | Estado completo |
 | POST | `/partida/<id>/palpite` | `{ "palpite": "A3" }` | Estado completo |
 | GET | `/partida/<id>/placar` | — | `{ "acertos": 1, "erros": 0 }` |

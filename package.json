@@ -8,8 +8,11 @@
   },
   "scripts": {
     "web": "python3 -m http.server 8000 --bind 127.0.0.1 --directory static",
+    "web:windows": "py -m http.server 8000 --bind 127.0.0.1 --directory static",
     "test": "npm run test:e2e",
+    "test:unit": "node --test tests/*.test.mjs",
     "test:e2e": "start-server-and-test web http://127.0.0.1:8000 e2e:run",
+    "test:e2e:windows": "start-server-and-test web:windows http://127.0.0.1:8000 e2e:run",
     "test:e2e:open": "start-server-and-test web http://127.0.0.1:8000 e2e:open",
     "e2e:run": "cypress run --browser electron",
     "e2e:open": "cypress open"
