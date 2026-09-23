@@ -8,7 +8,7 @@ function abrirNomes(quantidade = 2) {
   cy.get("#campos-nomes input").should("have.length", quantidade);
 }
 
-function preencherNomes(nomes = ["Fernando", "Henrique"]) {
+function preencherNomes(nomes = ["Ana", "Henrique"]) {
   nomes.forEach((nome, indice) => {
     cy.get(`#nome-jogador-${indice + 1}`).clear().type(nome);
   });
@@ -125,7 +125,7 @@ describe("Interface web — navegação e interação com Cypress", () => {
   it("bloqueia nomes vazios e preserva nomes ao mudar a quantidade", function () {
     interceptarInicio(this.estado);
     abrirNomes();
-    cy.get("#nome-jogador-1").type("Fernando");
+    cy.get("#nome-jogador-1").type("Ana");
     cy.get("#nome-jogador-2").type("   ");
     cy.get("#comecar-jogo").should("have.attr", "aria-disabled", "true").click();
     cy.get("#erro-nomes").should("be.visible");
@@ -133,8 +133,8 @@ describe("Interface web — navegação e interação com Cypress", () => {
     cy.get("#tela-nomes-jogadores").should("be.visible");
     cy.get("#voltar-nomes").click();
     abrirNomes(6);
-    cy.get("#nome-jogador-1").should("have.value", "Fernando");
-    preencherNomes(["Fernando", "Henrique", "Caio", "Mateus", "Ana", "Bia"]);
+    cy.get("#nome-jogador-1").should("have.value", "Ana");
+    preencherNomes(["Ana", "Henrique", "Caio", "Mateus", "Lia", "Bia"]);
     cy.get("#comecar-jogo").should("have.attr", "aria-disabled", "false").click();
     cy.wait("@iniciar");
     cy.get("#tela-jogo").should("be.visible");
