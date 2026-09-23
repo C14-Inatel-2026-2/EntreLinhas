@@ -36,11 +36,11 @@ test("com mock: chamarAPI envia JSON e devolve a resposta válida", async (t) =>
     return { ok: true, json: async () => estado };
   });
 
-  assert.deepEqual(await chamarAPI("/partida", "POST", { jogadores: 2 }), estado);
+  assert.deepEqual(await chamarAPI("/partida", "POST", { num_jogadores: 2 }), estado);
   assert.equal(chamadas.length, 1);
   assert.equal(chamadas[0].url, "/partida");
   assert.equal(chamadas[0].opcoes.method, "POST");
-  assert.deepEqual(JSON.parse(chamadas[0].opcoes.body), { jogadores: 2 });
+  assert.deepEqual(JSON.parse(chamadas[0].opcoes.body), { num_jogadores: 2 });
 });
 
 test("com mock, negativo: chamarAPI informa o erro HTTP 500 da API", async (t) => {
@@ -51,7 +51,7 @@ test("com mock, negativo: chamarAPI informa o erro HTTP 500 da API", async (t) =
   }));
 
   await assert.rejects(
-    chamarAPI("/partida", "POST", { jogadores: 2 }),
+    chamarAPI("/partida", "POST", { num_jogadores: 2 }),
     { message: "Servidor indisponível. Tente novamente." }
   );
 });

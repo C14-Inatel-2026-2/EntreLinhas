@@ -204,7 +204,7 @@ async function iniciarPartida(nomes) {
     // Ponto de integração futura dos nomes: envie configuracao quando a API aceitar
     // esse campo. Por enquanto, registra os dados e mantém o fluxo de jogo existente.
     console.log("Jogadores da partida:", configuracao);
-    const dados = await chamarAPI("/partida", "POST", { jogadores: configuracao.jogadores });
+    const dados = await chamarAPI("/partida", "POST", { num_jogadores: configuracao.jogadores });
     renderizarPartida(dados);
   });
 }

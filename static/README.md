@@ -85,7 +85,7 @@ Em `js/config.js`, `API_BASE = ""` usa a mesma origem; para outro servidor, conf
 
 | Método | Endpoint | Corpo | Resposta |
 | --- | --- | --- | --- |
-| POST | `/partida` | `{ "jogadores": 2 }` | Estado completo |
+| POST | `/partida` | `{ "num_jogadores": 2 }` | Estado completo |
 | POST | `/partida/<id>/dica` | `{ "dica": "cruzeiro" }` | Estado completo |
 | POST | `/partida/<id>/palpite` | `{ "palpite": "A3" }` | Estado completo |
 | GET | `/partida/<id>/placar` | — | `{ "acertos": 1, "erros": 0 }` |
