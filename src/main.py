@@ -1,4 +1,4 @@
-from EntreLinhas.src.Baralho import Baralho
+from src.Baralho import Baralho
 
 if __name__ == '__main__':
     linhas = ['A', 'B']
