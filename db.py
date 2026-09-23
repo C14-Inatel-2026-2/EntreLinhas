@@ -1,4 +1,5 @@
 import sqlite3
+import json
 from datetime import datetime
 
 SCHEMA_PARTIDAS = """
@@ -25,6 +26,17 @@ CREATE TABLE IF NOT EXISTS jogadas (
 );
 """
 
+SCHEMA_ESTADOS = """
+CREATE TABLE IF NOT EXISTS estados_partida (
+    partida_id INTEGER PRIMARY KEY,
+    cartas TEXT NOT NULL,
+    indice INTEGER NOT NULL DEFAULT 0,
+    fase TEXT NOT NULL DEFAULT 'dica',
+    dica TEXT,
+    FOREIGN KEY (partida_id) REFERENCES partidas(id)
+);
+"""
+
 def conectar_bd(db_path="jogo.db"):
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -35,6 +47,7 @@ def criar_tabelas(conn):
     with conn:
         conn.execute(SCHEMA_PARTIDAS)
         conn.execute(SCHEMA_JOGADAS)
+        conn.execute(SCHEMA_ESTADOS)
 
 def criar_partida(conn, num_jogadores):
     data_inicio = datetime.now().isoformat()
@@ -63,3 +76,44 @@ def salvar_jogada(conn, partida_id, jogador, dica, coord_correta, coord_tentada,
             (partida_id, jogador, dica, coord_correta, coord_tentada, acertou, ordem)
         )
         return cursor.lastrowid
+
+
+def criar_estado(conn, partida_id, cartas):
+    with conn:
+        conn.execute(
+            "INSERT INTO estados_partida (partida_id, cartas) VALUES (?, ?)",
+            (partida_id, json.dumps(cartas)),
+        )
+
+
+def consultar_estado(conn, partida_id):
+    row = conn.execute(
+        "SELECT * FROM estados_partida WHERE partida_id = ?", (partida_id,)
+    ).fetchone()
+    if row is None:
+        return None
+    estado = dict(row)
+    estado["cartas"] = json.loads(estado["cartas"])
+    return estado
+
+
+def atualizar_estado(conn, partida_id, indice, fase, dica=None):
+    with conn:
+        conn.execute(
+            "UPDATE estados_partida SET indice = ?, fase = ?, dica = ? WHERE partida_id = ?",
+            (indice, fase, dica, partida_id),
+        )
+
+
+def consultar_jogadas(conn, partida_id):
+    return [dict(row) for row in conn.execute(
+        "SELECT * FROM jogadas WHERE partida_id = ? ORDER BY ordem", (partida_id,)
+    )]
+
+
+def finalizar_partida(conn, partida_id, pontuacao):
+    with conn:
+        conn.execute(
+            "UPDATE partidas SET data_fim = ?, pontuacao_final = ? WHERE id = ?",
+            (datetime.now().isoformat(), pontuacao, partida_id),
+        )

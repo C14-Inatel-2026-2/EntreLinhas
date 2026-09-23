@@ -11,7 +11,7 @@ describe("Interface da partida: validação, erros e resultado", () => {
     cy.get("#nome-jogador-1").type("Ana");
     cy.get("#nome-jogador-2").type("Henrique");
     cy.get("#comecar-jogo").click();
-    cy.wait("@iniciar").its("request.body").should("deep.equal", { jogadores: 2 });
+    cy.wait("@iniciar").its("request.body").should("deep.equal", { num_jogadores: 2 });
     cy.get("#tela-jogo").should("be.visible");
   }
 
