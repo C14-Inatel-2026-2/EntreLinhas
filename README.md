@@ -15,7 +15,7 @@ errando, é descartada. O objetivo é cooperativo: preencher o máximo possível
 
 - **Linguagem:** Python 3
 - **Interface web:** HTML, CSS e JavaScript vanilla
-- **API prevista:** Flask (ainda não implementada)
+- **API:** Flask
 - **Gerenciamento de dependências:** pip (`requirements.txt`) e npm (`package-lock.json`)
 - **Testes:** pytest para Python; Cypress com relatório Mochawesome para a interface
 - **Banco de dados:** SQLite
@@ -44,23 +44,23 @@ Use `npm ci` ao instalar o projeto a partir do repositório.
 ## Execução
 
 ```bash
-python3 -m http.server 8000 --bind 127.0.0.1 --directory static
+python3 -m flask --app app run --host 127.0.0.1 --port 5000
 ```
 
-Abra `http://127.0.0.1:8000`. Esse comando serve a interface web; iniciar uma partida
-real ainda depende da API Flask e de `jogo.py`. A aplicação não possui modo mock.
+Abra `http://127.0.0.1:5000/static/index.html`. O Flask serve a interface e a API
+na mesma origem. As partidas e jogadas são salvas no SQLite local (`jogo.db`).
 
 ## Funcionalidades
 
-- [ ] Iniciar partida com número configurável de jogadores
-- [ ] Distribuição automática de cartas e montagem do tabuleiro
-- [ ] Exibição da carta secreta ao jogador da vez
-- [ ] Envio de dica e validação (uma única palavra)
-- [ ] Tentativa de palpite de coordenada
-- [ ] Atualização de tabuleiro e pontuação
-- [ ] Histórico de dicas da partida
-- [ ] Pontuação final
-- [ ] Persistência de partidas em SQLite
+- [x] Iniciar partida com número configurável de jogadores
+- [x] Distribuição automática de cartas e montagem do tabuleiro
+- [x] Exibição da carta secreta ao jogador da vez
+- [x] Envio de dica e validação (uma única palavra)
+- [x] Tentativa de palpite de coordenada
+- [x] Atualização de tabuleiro e pontuação
+- [x] Histórico de dicas da partida no banco de dados
+- [x] Pontuação final
+- [x] Persistência de partidas em SQLite
 
 ## Testes
 
@@ -73,8 +73,8 @@ npm run test:e2e
 ```
 
 Abra `reports/cypress/index.html` para visualizar o resultado. O servidor de testes
-é iniciado e encerrado automaticamente. Como a API ainda não existe, as respostas
-HTTP são controladas exclusivamente pelo Cypress; a suíte valida a interface,
+é iniciado e encerrado automaticamente. As respostas HTTP são controladas
+pelo Cypress; essa suíte valida a interface,
 não a integração com Python/SQLite. Consulte o [guia dos testes](cypress/README.md)
 para os cenários, modo interativo e limitações.
 

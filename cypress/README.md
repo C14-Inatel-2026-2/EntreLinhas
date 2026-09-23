@@ -12,17 +12,16 @@ com `cy.intercept()` (erro HTTP 500 e tela final após vitória simulada).
 O caso de nome vazio é negativo e verifica a mensagem, o campo inválido e
 a permanência na tela de nomes.
 
-O fluxo completo sem mock, da criação da partida até a atualização do placar,
-depende de uma API compatível com o contrato em `static/README.md`. A API Flask
-atual em `app.py` espera `num_jogadores`, responde sem o estado completo e não
-oferece `/partida/<id>/dica`; por isso esse fluxo ainda não é executável.
+O Flask agora atende ao contrato em `static/README.md`. Os cenários em `cypress/e2e/`
+continuam usando respostas simuladas. A integração real é verificada nos testes
+Python em `tests/test_api_jogo.py` e nos dois cenários sem mock de
+`cypress/real-api/fluxo.cy.js`.
 Os testes Cypress são de interface e não substituem os quatro testes unitários.
 
 Os testes usam Cypress e geram um relatório Mochawesome em HTML e JSON.
 
 ## Escopo atual
 
-A API Flask existe, mas ainda não implementa o contrato esperado pelo front-end.
 A suíte abre a interface real no navegador e usa
 `cy.intercept()` para responder às chamadas HTTP com dados de contrato definidos
 em `fixtures/partida.json` e nos cenários. Esses dados existem somente nos testes;
@@ -49,6 +48,17 @@ npm run test:e2e
 ```
 
 No Windows, use `npm run test:e2e:windows` no lugar de `npm run test:e2e`.
+
+Para rodar os dois cenários sem mock contra a API real, inicie o Flask em outra
+janela com `py -m flask --app app run --host 127.0.0.1 --port 5000` (ou use
+`python3 -m flask` fora do Windows) e execute:
+
+```sh
+npx cypress run --browser electron --spec cypress/real-api/fluxo.cy.js --config specPattern=cypress/real-api/fluxo.cy.js
+```
+
+Esses testes criam partidas no banco local `jogo.db` e não fazem parte do comando
+`npm run test:e2e`, que usa apenas o servidor estático e respostas simuladas.
 
 O comando inicia o servidor em `http://127.0.0.1:8000`, espera a página responder,
 executa o Cypress com Electron e encerra o servidor ao terminar, inclusive quando
