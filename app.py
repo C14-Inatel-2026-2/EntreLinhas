@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect
 from db import (
     conectar_bd, criar_tabelas, criar_partida, consultar_partida, salvar_jogada,
     criar_estado, consultar_estado, atualizar_estado, consultar_jogadas, finalizar_partida,
@@ -6,6 +6,25 @@ from db import (
 from jogo import criar_cartas, montar_estado
 
 app = Flask(__name__)
+
+
+@app.route("/")
+def pagina_inicial():
+    return redirect("/static/index.html")
+
+
+@app.route("/health")
+def health():
+    try:
+        conn = conectar_bd()
+        try:
+            conn.execute("SELECT 1 FROM partidas LIMIT 1").fetchone()
+        finally:
+            conn.close()
+    except Exception:
+        app.logger.exception("Falha na verificação do banco")
+        return jsonify({"status": "unavailable"}), 503
+    return jsonify({"status": "ok"}), 200
 
 # garante que as tabelas existem quando a api sobe
 with app.app_context():

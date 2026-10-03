@@ -26,6 +26,28 @@ def iniciar(cliente):
     return resposta.get_json()
 
 
+def test_health_verifica_banco_isolado(cliente):
+    resposta = cliente.get("/health")
+    assert resposta.status_code == 200
+    assert resposta.get_json() == {"status": "ok"}
+
+
+def test_health_informa_banco_indisponivel(cliente, monkeypatch):
+    def conectar_indisponivel():
+        raise OSError("Banco indisponível")
+
+    monkeypatch.setattr(modulo_api, "conectar_bd", conectar_indisponivel)
+    assert cliente.get("/health").status_code == 503
+
+
+def test_inicio_redireciona_e_serve_arquivos_da_interface(cliente):
+    resposta = cliente.get("/")
+    assert resposta.status_code == 302
+    assert resposta.headers["Location"] == "/static/index.html"
+    assert cliente.get("/static/index.html").status_code == 200
+    assert cliente.get("/static/js/app.js").status_code == 200
+
+
 def test_inicio_entrega_estado_completo_para_interface(cliente):
     estado = iniciar(cliente)
     assert estado["id"] > 0

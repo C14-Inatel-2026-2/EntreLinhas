@@ -1,0 +1,28 @@
+name: entrelinhas
+
+services:
+  backend:
+    build: .
+    image: entrelinhas:${IMAGE_TAG:-local}
+    ports:
+      - "127.0.0.1:${APP_PORT:-5001}:5000"
+    environment:
+      DATABASE_PATH: /data/jogo.db
+    volumes:
+      - jogo-data:/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    image: entrelinhas-frontend:${IMAGE_TAG:-local}
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  jogo-data:

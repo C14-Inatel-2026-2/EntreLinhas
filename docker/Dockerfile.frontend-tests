@@ -1,0 +1,11 @@
+FROM cypress/included:16.0.0
+ENV CYPRESS_INSTALL_BINARY=0
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY static/ ./static/
+COPY tests/frontend.test.mjs ./tests/frontend.test.mjs
+COPY cypress.config.js ./
+COPY cypress/ ./cypress/
+ENTRYPOINT []
+CMD ["npm", "run", "test:unit:ci"]

@@ -1,0 +1,39 @@
+name: entrelinhas-tests
+
+services:
+  backend-tests:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend-tests
+    volumes:
+      - ./reports/backend:/app/reports/backend
+    tmpfs:
+      - /tmp
+
+  frontend-tests:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend-tests
+    volumes:
+      - ./reports/frontend:/app/reports/frontend
+
+  app-test:
+    build: .
+    environment:
+      DATABASE_PATH: /data/test-jogo.db
+    tmpfs:
+      - /data:mode=1777
+
+  e2e-tests:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend-tests
+    depends_on:
+      app-test:
+        condition: service_healthy
+    environment:
+      CYPRESS_BASE_URL: http://app-test:5000
+    volumes:
+      - ./reports/cypress:/app/reports/cypress
+    shm_size: 1gb
+    command: ["npx", "cypress", "run", "--browser", "electron", "--spec", "cypress/e2e/**/*.cy.js,cypress/real-api/**/*.cy.js"]

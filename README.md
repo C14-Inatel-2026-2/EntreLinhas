@@ -50,6 +50,44 @@ python3 -m flask --app app run --host 127.0.0.1 --port 5000
 Abra `http://127.0.0.1:5000/static/index.html`. O Flask serve a interface e a API
 na mesma origem. As partidas e jogadas são salvas no SQLite local (`jogo.db`).
 
+## Docker
+
+Para volumes, testes em containers e deploy no Railway, consulte
+[Docker e Railway](docs/docker-railway.md).
+
+Com Docker Desktop iniciado e configurado para containers Linux, execute na raiz:
+
+```bash
+docker compose up --build -d --wait
+```
+
+Abra `http://localhost:8080`. O Compose executa frontend Nginx e backend
+Gunicorn em containers separados. O Nginx encaminha a API ao backend. Node e
+Cypress ficam fora da imagem de execução; os testes devem rodar nos jobs de CI.
+
+```bash
+docker compose ps
+docker compose logs -f backend frontend
+docker compose down
+```
+
+O SQLite fica no volume `jogo-data`, em `/data/jogo.db`, e permanece após
+`docker compose down` e reconstruções da imagem. O banco local existente não é
+copiado para o container: a primeira execução começa com um banco vazio.
+Não use `docker compose down -v` se quiser manter as partidas.
+
+A porta é publicada apenas no computador local. Para mudar a porta no PowerShell:
+
+```powershell
+$env:APP_PORT = "8000"
+docker compose up --build -d --wait
+```
+
+O job Build do Jenkins poderá executar `docker compose build`; o Deploy poderá
+usar a imagem aprovada pelos testes. `IMAGE_TAG` permite definir a identificação
+da imagem, por exemplo com o hash do commit. A configuração dos jobs Jenkins
+ainda deve ser implementada.
+
 ## Funcionalidades
 
 - [x] Iniciar partida com número configurável de jogadores
