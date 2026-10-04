@@ -52,6 +52,9 @@ na mesma origem. As partidas e jogadas são salvas no SQLite local (`jogo.db`).
 
 ## Docker
 
+Para o job de Deploy de Fernando no Jenkins, consulte
+[Deploy Jenkins → Railway](docs/deploy-fernando.md).
+
 Para volumes, testes em containers e deploy no Railway, consulte
 [Docker e Railway](docs/docker-railway.md).
 
