@@ -35,7 +35,8 @@ python -m pip install -r requirements.txt
 npm ci
 ```
 
-`requirements.txt` instala Flask para o backend web e pytest para os testes Python.
+`requirements.txt` reúne Flask e Gunicorn para a aplicação, e pytest e pytest-cov
+para testes e cobertura.
 SQLite já faz parte do Python. As dependências de teste da interface ficam no
 `package.json`: Cypress, `cypress-mochawesome-reporter` e `start-server-and-test`,
 com versões fixas e dependências transitivas registradas em `package-lock.json`.
@@ -51,6 +52,9 @@ Abra `http://127.0.0.1:5000/static/index.html`. O Flask serve a interface e a AP
 na mesma origem. As partidas e jogadas são salvas no SQLite local (`jogo.db`).
 
 ## Docker
+
+Para o job de Deploy de Fernando no Jenkins, consulte
+[Deploy Jenkins → Railway](docs/deploy-fernando.md).
 
 Para volumes, testes em containers e deploy no Railway, consulte
 [Docker e Railway](docs/docker-railway.md).

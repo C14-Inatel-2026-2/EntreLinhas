@@ -139,6 +139,3 @@ def rota_palpite(partida_id):
         return jsonify(montar_estado(partida, progresso, consultar_jogadas(conn, partida_id), mensagem)), 200
     finally:
         conn.close()
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)

@@ -8,7 +8,7 @@
 | Aplicação Railway | Volume Railway em `/data` | Persistir `/data/jogo.db` |
 | Testes Python | `./reports/backend` em `/app/reports/backend` | JUnit, cobertura XML e HTML no workspace |
 | Testes JavaScript | `./reports/frontend` em `/app/reports/frontend` | Resultado dos testes e cobertura LCOV |
-| Testes Cypress | `./reports/cypress` em `/app/reports/cypress` | Relatório HTML e screenshots |
+| Testes Cypress | `./reports` em `/app/reports` | Relatório HTML e screenshots em `cypress/` |
 | API dos testes | Memória temporária em `/data` | Banco isolado, descartado ao remover o container |
 
 No Compose local, frontend (Nginx) e backend (Gunicorn) usam containers separados.
@@ -39,12 +39,16 @@ O banco local `jogo.db` não é importado automaticamente para o volume.
 
 Execute cada job separadamente para preservar seu código de saída:
 
+Todos os serviços estão no `compose.yaml`. O perfil `tests` mantém os serviços
+de teste fora da inicialização normal. Use o projeto `entrelinhas-tests` para
+que a execução e a limpeza dos testes não interfiram na aplicação local.
+
 ```bash
-docker compose -f compose.tests.yaml build
-docker compose -f compose.tests.yaml run --rm backend-tests
-docker compose -f compose.tests.yaml run --rm frontend-tests
-docker compose -f compose.tests.yaml run --rm e2e-tests
-docker compose -f compose.tests.yaml down
+docker compose -p entrelinhas-tests --profile tests build backend-tests frontend-tests app-test e2e-tests
+docker compose -p entrelinhas-tests --profile tests run --rm backend-tests
+docker compose -p entrelinhas-tests --profile tests run --rm frontend-tests
+docker compose -p entrelinhas-tests --profile tests run --rm e2e-tests
+docker compose -p entrelinhas-tests --profile tests down
 ```
 
 O job Cypress inicia uma API exclusiva, aguarda sua saúde e roda os cenários
@@ -84,6 +88,33 @@ de testes no Railway. Para atender à disciplina, desative o autodeploy por push
 e deixe o job Deploy do Jenkins publicar somente depois dos testes aprovados.
 A integração Jenkins/Railway ainda precisa ser configurada com as credenciais
 do projeto. Não versione tokens no repositório.
+
+## Decisões Docker
+
+- `compose.yaml` reúne aplicação e testes; estes usam o perfil `tests`.
+- O Dockerfile Python possui estágios `dependencies`, `backend-tests` e `runtime`.
+  O último é o padrão do Railway. O estágio de testes reutiliza as dependências.
+- As bases Python, Nginx e Cypress estão fixadas por digest. Ao atualizar, troque o digest
+  e execute novamente os testes; `--pull` sozinho não troca uma base fixada.
+- Dependências JavaScript usam `npm ci` e lockfile.
+- Dependências são copiadas antes do código e usam cache BuildKit, sem guardar
+  caches de download nas camadas finais.
+- `.dockerignore` permite apenas entradas necessárias, excluindo banco e segredos.
+- Backend e frontend executam como usuários sem privilégios. O Nginx escuta na
+  porta interna 8080 para dispensar permissões de porta privilegiada.
+- O Compose aplica `read_only`, `cap_drop: ALL`, `no-new-privileges` e `init` aos
+  serviços da aplicação. Apenas SQLite e diretórios temporários são graváveis.
+- Redes da aplicação e dos testes são separadas; portas públicas ficam limitadas
+  a localhost. Logs da aplicação possuem rotação de 10 MB, com até três arquivos.
+- Gunicorn e Nginx executam diretamente, permitindo receber sinais de parada.
+
+Foi mantido um único `requirements.txt`, conforme a escolha do grupo. Assim,
+pytest e cobertura também são instalados na imagem da aplicação. Os fontes dos
+testes e os relatórios ficam apenas no estágio de testes.
+
+O Railway usa o Dockerfile; as opções de segurança do Compose são específicas
+da execução local. A inicialização Railway como root serve para corrigir a
+propriedade do volume, e o entrypoint reduz os privilégios antes do Gunicorn.
 
 Referências: [volumes Railway](https://docs.railway.com/volumes),
 [configuração versionada](https://docs.railway.com/config-as-code/reference) e

@@ -1,4 +1,4 @@
-const pagina = `${Cypress.env("REAL_API_URL") || Cypress.config("baseUrl").replace(":8000", ":5000")}/static/index.html`;
+const pagina = `${Cypress.config("baseUrl").replace(":8000", ":5000")}/static/index.html`;
 
 function iniciarPartida() {
   cy.visit(pagina);

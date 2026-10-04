@@ -1,7 +1,20 @@
 name: entrelinhas
 
+x-app-security: &app-security
+  init: true
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+
+x-app-logging: &app-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   backend:
+    <<: *app-security
     build: .
     image: entrelinhas:${IMAGE_TAG:-local}
     ports:
@@ -10,19 +23,84 @@ services:
       DATABASE_PATH: /data/jogo.db
     volumes:
       - jogo-data:/data
+    tmpfs:
+      - /tmp:mode=1777
+    networks: [app]
+    logging: *app-logging
     restart: unless-stopped
 
   frontend:
+    <<: *app-security
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
     image: entrelinhas-frontend:${IMAGE_TAG:-local}
     ports:
-      - "127.0.0.1:${FRONTEND_PORT:-8080}:80"
+      - "127.0.0.1:${FRONTEND_PORT:-8080}:8080"
     depends_on:
       backend:
         condition: service_healthy
+    tmpfs:
+      - /tmp:mode=1777
+      - /var/cache/nginx:mode=1777
+    networks: [app]
+    logging: *app-logging
     restart: unless-stopped
+
+  backend-tests:
+    profiles: [tests]
+    build:
+      context: .
+      target: backend-tests
+    init: true
+    networks: [tests]
+    volumes:
+      - ./reports/backend:/app/reports/backend
+    tmpfs:
+      - /tmp
+
+  frontend-tests:
+    profiles: [tests]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend-tests
+    init: true
+    networks: [tests]
+    volumes:
+      - ./reports/frontend:/app/reports/frontend
+
+  app-test:
+    <<: *app-security
+    profiles: [tests]
+    build: .
+    environment:
+      DATABASE_PATH: /data/test-jogo.db
+    tmpfs:
+      - /data:mode=1777
+      - /tmp:mode=1777
+    networks: [tests]
+
+  e2e-tests:
+    profiles: [tests]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend-tests
+    init: true
+    networks: [tests]
+    depends_on:
+      app-test:
+        condition: service_healthy
+    environment:
+      CYPRESS_BASE_URL: http://app-test:5000
+      CYPRESS_SPEC_PATTERN: cypress/**/*.cy.js
+    volumes:
+      - ./reports:/app/reports
+    shm_size: 1gb
+    command: ["npx", "cypress", "run", "--browser", "electron"]
 
 volumes:
   jogo-data:
+
+networks:
+  app:
+  tests:
