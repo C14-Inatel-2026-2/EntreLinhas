@@ -48,7 +48,38 @@ pipeline {
                         "RAILWAY_ENVIRONMENT=${params.RAILWAY_ENVIRONMENT}",
                         "PUBLIC_URL=${params.PUBLIC_URL}"
                     ]) {
-                        sh 'bash scripts/deploy-railway.sh'
+                        sh '''#!/usr/bin/env bash
+set -euo pipefail
+test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+test -z "$(git status --porcelain --untracked-files=no)"
+railway up --project "$RAILWAY_PROJECT_ID" \
+    --service "$RAILWAY_SERVICE" --environment "$RAILWAY_ENVIRONMENT" \
+    --message "Jenkins ${BUILD_NUMBER} commit ${RELEASE_COMMIT}"
+
+python3 - <<'PY'
+import json
+import os
+import time
+from urllib.request import urlopen
+
+base = os.environ['PUBLIC_URL'].rstrip('/')
+for attempt in range(12):
+    try:
+        with urlopen(base + '/health', timeout=10) as response:
+            if response.status != 200 or json.load(response) != {'status': 'ok'}:
+                raise ValueError('Banco indisponível')
+        with urlopen(base + '/static/index.html', timeout=10) as response:
+            if response.status != 200 or b'id="form-iniciar"' not in response.read():
+                raise ValueError('Interface indisponível')
+        print('Deploy verificado: interface e banco disponíveis.')
+        break
+    except (OSError, ValueError) as error:
+        print(f'Verificação {attempt + 1}/12: {error}')
+        if attempt == 11:
+            raise SystemExit('Deploy não passou na verificação pública.')
+        time.sleep(5)
+PY
+'''
                     }
                 }
             }

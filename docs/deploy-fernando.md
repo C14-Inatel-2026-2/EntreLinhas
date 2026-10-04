@@ -1,18 +1,16 @@
 # Entrega de Fernando: Deploy Jenkins → Railway
 
-Esta entrega implementa o job Deploy, a execução com Gunicorn e os scripts de
-inicialização. Build, testes de domínio, Cypress e cobertura ficam com os
+Esta entrega implementa o job Deploy e a execução com Gunicorn. Build,
+testes de domínio, Cypress e cobertura ficam com os
 responsáveis por essas etapas.
 
 ## O que foi implementado
 
 - `requirements.txt` reúne Flask, Gunicorn, pytest e pytest-cov em um único arquivo.
-- `scripts/start.sh --install` prepara o ambiente Python e inicia a aplicação.
-- `scripts/run.sh` serve interface e API com Gunicorn; aceita `PORT` e `HOST`.
+- O Dockerfile inicia interface e API com Gunicorn, usando a variável `PORT`.
 - `app.py` não inicia mais um servidor com `debug=True`.
 - `Jenkinsfile` define o job Deploy de Fernando, recebendo `COMMIT_SHA`.
-- `scripts/deploy-railway.sh` publica o checkout desse commit via CLI.
-- `scripts/verify-deploy.py` verifica a interface e o banco após a publicação.
+- O próprio Jenkinsfile publica via CLI e verifica interface e banco após o deploy.
 - `.railwayignore` exclui banco local, ambientes, relatórios e segredos do upload.
 
 Dockerfile, porta dinâmica, `/health` e configuração Railway já estavam na main
@@ -20,19 +18,13 @@ e são reutilizados. Não é necessário trocar os containers existentes.
 
 ## Execução da aplicação
 
-Em Linux, macOS ou WSL:
-
 ```bash
-bash scripts/start.sh --install
-# Nas próximas execuções:
-bash scripts/run.sh
-# Outra porta:
-PORT=8000 bash scripts/run.sh
+docker compose up --build -d --wait
 ```
 
-Acesse `http://localhost:5000`. Gunicorn não roda diretamente no Windows;
-nesse sistema use os containers Docker já configurados. Node não é necessário
-para iniciar o backend e servir os arquivos estáticos.
+Acesse `http://localhost:8080`. Não há scripts auxiliares de inicialização.
+O entrypoint em `docker/entrypoint.sh` prepara as permissões do volume SQLite
+no Railway e reduz os privilégios antes de executar o Gunicorn.
 
 ## Configuração do Railway
 
