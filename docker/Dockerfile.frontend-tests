@@ -1,8 +1,9 @@
-FROM cypress/included:16.0.0
+# syntax=docker/dockerfile:1
+FROM cypress/included:16.0.0@sha256:2ad59498de089a8eb03b6a3923c4e2f0801099f9be044ae2825531cb585e9370
 ENV CYPRESS_INSTALL_BINARY=0
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 COPY static/ ./static/
 COPY tests/frontend.test.mjs ./tests/frontend.test.mjs
 COPY cypress.config.js ./
