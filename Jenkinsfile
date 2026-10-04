@@ -1,6 +1,6 @@
 // Job de Fernando: publica o commit recebido do pipeline após Build e Testes.
 pipeline {
-    agent { label 'linux' }
+    agent { label 'built-in' }
     options {
         skipDefaultCheckout(true)
         disableConcurrentBuilds()
@@ -8,16 +8,16 @@ pipeline {
     }
     parameters {
         string(name: 'COMMIT_SHA', defaultValue: '', description: 'SHA completo aprovado nas etapas anteriores de Build e Testes.')
-        string(name: 'RAILWAY_PROJECT_ID', defaultValue: '', description: 'ID do projeto Railway.')
+        string(name: 'RAILWAY_PROJECT_ID', defaultValue: '67641175-19f1-4597-a518-3ddea95e22fa', description: 'ID do projeto Railway.')
         string(name: 'RAILWAY_SERVICE', defaultValue: 'EntreLinhas', description: 'Nome ou ID do serviço Railway.')
         string(name: 'RAILWAY_ENVIRONMENT', defaultValue: 'production', description: 'Ambiente Railway.')
-        string(name: 'PUBLIC_URL', defaultValue: '', description: 'Domínio HTTPS da aplicação, sem caminho.')
+        string(name: 'PUBLIC_URL', defaultValue: 'https://entrelinhas-production-7e6e.up.railway.app', description: 'Domínio HTTPS da aplicação, sem caminho.')
     }
     stages {
         stage('Preparar commit') {
             steps {
                 deleteDir()
-                checkout scm
+                git branch: 'main', url: 'https://github.com/C14-Inatel-2026-2/EntreLinhas.git'
                 script {
                     def requested = params.COMMIT_SHA.trim()
                     if (!(requested ==~ /[0-9a-fA-F]{40}/)) {
