@@ -19,7 +19,7 @@ errando, é descartada. O objetivo é cooperativo: preencher o máximo possível
 - **Gerenciamento de dependências:** pip (`requirements.txt`) e npm (`package-lock.json`)
 - **Testes:** pytest para Python; Cypress com relatório Mochawesome para a interface
 - **Banco de dados:** SQLite
-- **CI/CD previsto:** Jenkins (pipeline ainda não implementado)
+- **CI/CD:** Jenkins com job de deploy no Railway; integração de Build e Testes em andamento
 
 ## Instalação
 
@@ -53,9 +53,6 @@ na mesma origem. As partidas e jogadas são salvas no SQLite local (`jogo.db`).
 
 ## Docker
 
-Para o job de Deploy de Fernando no Jenkins, consulte
-[Deploy Jenkins → Railway](docs/deploy-fernando.md).
-
 Para volumes, testes em containers e deploy no Railway, consulte
 [Docker e Railway](docs/docker-railway.md).
 
@@ -87,10 +84,46 @@ $env:APP_PORT = "8000"
 docker compose up --build -d --wait
 ```
 
-O job Build do Jenkins poderá executar `docker compose build`; o Deploy poderá
-usar a imagem aprovada pelos testes. `IMAGE_TAG` permite definir a identificação
-da imagem, por exemplo com o hash do commit. A configuração dos jobs Jenkins
-ainda deve ser implementada.
+O job Build do Jenkins poderá executar `docker compose build`. `IMAGE_TAG`
+permite identificar a imagem pelo hash do commit. A integração dos jobs de
+Build e Testes com o Deploy ainda deve ser concluída.
+
+## Deploy Jenkins → Railway
+
+O `Jenkinsfile` executa o deploy no próprio servidor Jenkins Linux, pelo executor
+`built-in`. O servidor precisa de Git, Bash, Python 3, Node.js e Railway CLI
+(`npm install -g @railway/cli@5.63.1`), além dos plugins Pipeline, Git e
+Credentials Binding. Se o container Jenkins for recriado, reinstale essas ferramentas.
+
+Crie o job Pipeline `EntreLinhas-Deploy`, selecione **Pipeline script**, copie
+o conteúdo do `Jenkinsfile` e mantenha **Use Groovy Sandbox** ativado.
+Ao alterar o arquivo, atualize também o script salvo no job.
+Cadastre um Project Token do Railway como credencial **Secret text**, com ID
+`railway-project-token`. Nunca coloque o token no Git ou nos parâmetros.
+
+Em **Build with Parameters**, informe:
+
+| Parâmetro | Valor |
+| --- | --- |
+| `COMMIT_SHA` | SHA completo de 40 caracteres aprovado em Build e Testes |
+| `RAILWAY_PROJECT_ID` | `67641175-19f1-4597-a518-3ddea95e22fa` |
+| `RAILWAY_SERVICE` | `EntreLinhas`, ou ID do serviço |
+| `RAILWAY_ENVIRONMENT` | `production`, ou ambiente associado ao token |
+| `PUBLIC_URL` | `https://entrelinhas-production-7e6e.up.railway.app` |
+
+O pipeline baixa a branch `main`, seleciona o SHA informado, publica com
+`railway up` e verifica `/health` e `/static/index.html`. O timeout é 30 minutos.
+Este job executa somente Deploy; a integração deve acioná-lo após Build e Testes
+aprovados, passando o mesmo SHA. Restrinja o acionamento manual conforme as
+permissões do grupo.
+
+No Railway, use o `Dockerfile` da raiz, uma réplica, healthcheck `/health`,
+volume montado em `/data`, `DATABASE_PATH=/data/jogo.db` e `RAILWAY_RUN_UID=0`.
+Use a variável `PORT` fornecida pelo Railway e mantenha o Start Command padrão:
+o entrypoint prepara o volume e inicia o Gunicorn com privilégios reduzidos.
+Desative o autodeploy para deixar a publicação sob controle do Jenkins.
+O Dockerfile instala dependências com `pip --no-cache-dir`, sem cache mounts
+que dependam do ID de um serviço Railway.
 
 ## Funcionalidades
 
