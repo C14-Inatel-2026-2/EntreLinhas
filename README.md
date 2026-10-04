@@ -93,7 +93,21 @@ Build e Testes com o Deploy ainda deve ser concluída.
 O `Jenkinsfile` executa o deploy no próprio servidor Jenkins Linux, pelo executor
 `built-in`. O servidor precisa de Git, Bash, Python 3, Node.js e Railway CLI
 (`npm install -g @railway/cli@5.63.1`), além dos plugins Pipeline, Git e
-Credentials Binding. Se o container Jenkins for recriado, reinstale essas ferramentas.
+Credentials Binding. O serviço `jenkins` do Compose inclui Git, Python com pip/venv,
+Node.js 24 e Railway CLI na imagem, preservando as ferramentas nas reconstruções.
+
+```bash
+docker volume create jenkins-entrelinhas-home
+docker compose --profile ci up --build -d --wait jenkins
+```
+
+Acesse `http://localhost:8081`. O volume `jenkins-entrelinhas-home` preserva jobs,
+plugins e credenciais e reaproveita os dados do Jenkins existente neste computador.
+O perfil `ci` permite iniciar Jenkins independentemente dos serviços do jogo.
+Para pará-lo, use `docker compose --profile ci stop jenkins`.
+O volume do Jenkins é externo ao Compose; não é removido por `down -v`.
+Evite esse comando para preservar também o volume SQLite do jogo.
+Em outra máquina, a primeira execução exige configurar usuário, plugins e jobs.
 
 Crie o job Pipeline `EntreLinhas-Deploy`, selecione **Pipeline script**, copie
 o conteúdo do `Jenkinsfile` e mantenha **Use Groovy Sandbox** ativado.

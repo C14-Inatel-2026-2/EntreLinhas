@@ -13,6 +13,28 @@ x-app-logging: &app-logging
     max-file: "3"
 
 services:
+  jenkins:
+    profiles: [ci]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.jenkins
+    image: entrelinhas-jenkins:local
+    container_name: jenkins-entrelinhas
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${JENKINS_PORT:-8081}:8080"
+    volumes:
+      - jenkins-home:/var/jenkins_home
+    networks: [ci]
+    logging: *app-logging
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/login"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
   backend:
     <<: *app-security
     build: .
@@ -99,8 +121,12 @@ services:
     command: ["npx", "cypress", "run", "--browser", "electron"]
 
 volumes:
+  jenkins-home:
+    external: true
+    name: jenkins-entrelinhas-home
   jogo-data:
 
 networks:
+  ci:
   app:
   tests:
