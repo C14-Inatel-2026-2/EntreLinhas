@@ -35,7 +35,8 @@ python -m pip install -r requirements.txt
 npm ci
 ```
 
-`requirements.txt` instala Flask para o backend web e pytest para os testes Python.
+`requirements.txt` reúne Flask e Gunicorn para a aplicação, e pytest e pytest-cov
+para testes e cobertura.
 SQLite já faz parte do Python. As dependências de teste da interface ficam no
 `package.json`: Cypress, `cypress-mochawesome-reporter` e `start-server-and-test`,
 com versões fixas e dependências transitivas registradas em `package-lock.json`.

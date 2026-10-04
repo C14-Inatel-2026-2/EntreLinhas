@@ -6,7 +6,7 @@ responsáveis por essas etapas.
 
 ## O que foi implementado
 
-- `requirements.txt` inclui `requirements-runtime.txt`, que instala Gunicorn.
+- `requirements.txt` reúne Flask, Gunicorn, pytest e pytest-cov em um único arquivo.
 - `scripts/start.sh --install` prepara o ambiente Python e inicia a aplicação.
 - `scripts/run.sh` serve interface e API com Gunicorn; aceita `PORT` e `HOST`.
 - `app.py` não inicia mais um servidor com `debug=True`.
