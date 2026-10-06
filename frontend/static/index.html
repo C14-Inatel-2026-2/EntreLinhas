@@ -83,9 +83,11 @@
           </form>
           <form id="form-palpite" hidden>
             <span class="etapa">A VEZ DE ADIVINHAR</span><h2>Juntem as ideias!</h2><p>A dica da rodada é:</p><p id="dica-atual" class="dica-atual"></p>
+            <p id="jogador-palpite" class="jogador-palpite"></p>
             <p id="selecao-palpite" class="ajuda" role="status">Nenhuma coordenada selecionada.</p><button id="confirmar-palpite" type="submit" disabled>Confirmar palpite <span aria-hidden="true">→</span></button>
           </form>
           <button id="atualizar-placar" class="botao-texto" type="button">↻ Atualizar placar</button>
+          <button id="encerrar-jogo" class="botao-encerrar" type="button">Encerrar partida agora</button>
         </aside>
       </div>
     </section>
@@ -96,6 +98,12 @@
     </section>
     <noscript><p class="erro">Ative o JavaScript no navegador para jogar Entre Linhas.</p></noscript>
   </main>
+  <dialog id="resultado-palpite" class="popup-resultado" aria-labelledby="titulo-palpite" aria-describedby="descricao-palpite">
+    <span id="icone-palpite" class="icone-palpite" aria-hidden="true"></span>
+    <h2 id="titulo-palpite"></h2>
+    <p id="descricao-palpite"></p>
+    <button id="continuar-palpite" type="button" autofocus>Continuar</button>
+  </dialog>
   <footer>Feito para pensar junto. <span aria-hidden="true">✦</span> Entre Linhas</footer>
 </body>
 </html>

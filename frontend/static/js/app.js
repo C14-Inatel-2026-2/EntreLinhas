@@ -7,6 +7,7 @@ import { obterCamposDeNomes, validarNomes, renderizarCamposDeNomes } from "./ui/
 let partida = null;
 let ocupado = false;
 let telaAtual = "tela-inicial";
+let nomesJogadores = [];
 
 function definirLoading(valor) {
   ocupado = valor;
@@ -41,6 +42,10 @@ function mostrarTela(id) {
 }
 
 function focarTela() {
+  if (elemento("resultado-palpite").open) {
+    elemento("continuar-palpite").focus();
+    return;
+  }
   if (telaAtual === "tela-nomes-jogadores") {
     elemento("titulo-nomes").focus();
     return;
@@ -165,7 +170,13 @@ function renderizarPartida(dados) {
   renderizarTabuleiro(dados.tabuleiro, anteriores);
   elemento("form-dica").hidden = dados.fase !== "dica";
   elemento("form-palpite").hidden = dados.fase !== "palpite";
-  elemento("turno").textContent = `Jogador ${dados.jogador_dica} dá a dica · Os demais adivinham juntos.`;
+  const jogadorDica = nomesJogadores[dados.jogador_dica - 1] || `Jogador ${dados.jogador_dica}`;
+  const indicePalpite = dados.jogador_dica % nomesJogadores.length;
+  const jogadorPalpite = nomesJogadores[indicePalpite] || "O time";
+  elemento("turno").textContent = dados.fase === "palpite"
+    ? `${jogadorPalpite}, é sua vez de dar o palpite! O time pode ajudar.`
+    : `${jogadorDica} dá a dica · O time adivinha junto.`;
+  elemento("jogador-palpite").textContent = `${jogadorPalpite} confirma o palpite com a ajuda do time.`;
   elemento("mensagem-rodada").textContent = dados.mensagem || "";
   elemento("dica-atual").textContent = dados.dica || "";
   elemento("resumo-final").textContent = dados.resumo || "Obrigado por jogar em equipe!";
@@ -200,11 +211,9 @@ async function confirmarNomes(evento) {
 
 async function iniciarPartida(nomes) {
   await executarAcao(async () => {
-    const configuracao = { jogadores: nomes.length, nomes };
-    // Ponto de integração futura dos nomes: envie configuracao quando a API aceitar
-    // esse campo. Por enquanto, registra os dados e mantém o fluxo de jogo existente.
-    console.log("Jogadores da partida:", configuracao);
-    const dados = await chamarAPI("/partida", "POST", { num_jogadores: configuracao.jogadores });
+    const dados = await chamarAPI("/partida", "POST", { num_jogadores: nomes.length });
+    validarEstado(dados);
+    nomesJogadores = [...nomes];
     renderizarPartida(dados);
   });
 }
@@ -224,7 +233,30 @@ async function enviarPalpite(evento) {
   // A coordenada vem da célula marcada, mantendo o contrato de envio à API.
   const coordenada = selecionada.dataset.coordenada;
   await executarAcao(async () => {
+    const placarAnterior = partida.placar;
     const dados = await chamarAPI(`/partida/${encodeURIComponent(partida.id)}/palpite`, "POST", { palpite: coordenada });
+    renderizarPartida(dados);
+    if (dados.placar.acertos > placarAnterior.acertos) mostrarResultadoPalpite(true);
+    else if (dados.placar.erros > placarAnterior.erros) mostrarResultadoPalpite(false);
+  });
+}
+
+function mostrarResultadoPalpite(acertou) {
+  const popup = elemento("resultado-palpite");
+  popup.dataset.resultado = acertou ? "acerto" : "erro";
+  elemento("icone-palpite").textContent = acertou ? "✓" : "×";
+  elemento("titulo-palpite").textContent = acertou ? "Acertou!" : "Errou!";
+  elemento("descricao-palpite").textContent = acertou
+    ? "Boa conexão! Mais uma carta posicionada no tabuleiro."
+    : "Essa não era a coordenada. A carta foi descartada, mas cada ideia conta!";
+  elemento("continuar-palpite").textContent = partida.fase === "final" ? "Ver resultado" : "Continuar";
+  popup.showModal();
+}
+
+async function encerrarJogo() {
+  if (ocupado || !partida || partida.fase === "final") return;
+  await executarAcao(async () => {
+    const dados = await chamarAPI(`/partida/${encodeURIComponent(partida.id)}/encerrar`, "POST");
     renderizarPartida(dados);
   });
 }
@@ -247,6 +279,7 @@ function revelarCarta() {
 
 function jogarNovamente() {
   partida = null;
+  nomesJogadores = [];
   ocultarCarta();
   elemento("erro").hidden = true;
   mostrarTela("tela-inicial");
@@ -266,4 +299,13 @@ elemento("tabuleiro").addEventListener("click", (evento) => {
 });
 elemento("revelar-carta").addEventListener("click", revelarCarta);
 elemento("atualizar-placar").addEventListener("click", atualizarPlacar);
+elemento("encerrar-jogo").addEventListener("click", encerrarJogo);
+elemento("continuar-palpite").addEventListener("click", () => elemento("resultado-palpite").close());
+elemento("resultado-palpite").addEventListener("keydown", (evento) => {
+  if (evento.key === "Escape") {
+    evento.preventDefault();
+    elemento("resultado-palpite").close();
+  }
+});
+elemento("resultado-palpite").addEventListener("close", focarTela);
 elemento("jogar-novamente").addEventListener("click", jogarNovamente);

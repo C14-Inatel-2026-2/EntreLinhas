@@ -133,3 +133,46 @@ def test_api_rejeita_dica_invalida_e_palpite_fora_de_fase(cliente):
 def test_inicio_rejeita_quantidade_invalida(cliente, quantidade):
     resposta = cliente.post("/partida", json={"num_jogadores": quantidade})
     assert resposta.status_code == 400
+
+
+@pytest.mark.parametrize("enviar_dica", [False, True])
+def test_encerramento_antecipado_persiste_e_bloqueia_novas_jogadas(cliente, enviar_dica):
+    inicio = iniciar(cliente)
+    rota = f"/partida/{inicio['id']}"
+    # Uma carta acertada e uma errada antes de encerrar: conserva o placar real.
+    for acertar in [True, False]:
+        carta = inicio["carta_secreta"]
+        cliente.post(f"{rota}/dica", json={"dica": "ponte"})
+        palpite = carta if acertar else next(
+            c["coordenada"] for c in inicio["tabuleiro"]["celulas"]
+            if c["coordenada"] != carta and c["estado"] == "vazia"
+        )
+        inicio = cliente.post(f"{rota}/palpite", json={"palpite": palpite}).get_json()
+    if enviar_dica:
+        cliente.post(f"{rota}/dica", json={"dica": "ultima"})
+
+    resposta = cliente.post(f"{rota}/encerrar")
+    assert resposta.status_code == 200
+    estado = resposta.get_json()
+    assert estado["fase"] == "final"
+    assert estado["carta_secreta"] is None
+    assert estado["dica"] is None
+    assert estado["placar"] == {"acertos": 1, "erros": 1}
+    assert estado["tabuleiro"] == inicio["tabuleiro"]
+    registro = cliente.get(rota).get_json()
+    assert registro["data_fim"] is not None
+    assert registro["pontuacao_final"] == 1
+    assert cliente.post(f"{rota}/dica", json={"dica": "nova"}).status_code == 409
+    assert cliente.post(f"{rota}/palpite", json={"palpite": "A1"}).status_code == 409
+    # Repetir o pedido devolve o mesmo resultado, sem alterar a data de encerramento.
+    assert cliente.post(f"{rota}/encerrar").get_json() == estado
+    assert cliente.get(rota).get_json() == registro
+
+
+def test_encerrar_sem_jogadas_e_rejeitar_partida_inexistente(cliente):
+    inicio = iniciar(cliente)
+    resposta = cliente.post(f"/partida/{inicio['id']}/encerrar")
+    assert resposta.status_code == 200
+    assert resposta.get_json()["placar"] == {"acertos": 0, "erros": 0}
+    assert resposta.get_json()["fase"] == "final"
+    assert cliente.post("/partida/99999/encerrar").status_code == 404

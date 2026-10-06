@@ -5,6 +5,8 @@ button,a,input {
 }
 
 button {
+  touch-action: manipulation;
+  user-select: none;
   border: 2px solid var(--azul);
   border-radius: 14px;
   padding: 12px 24px;
@@ -16,10 +18,12 @@ button {
   transition: transform .18s,box-shadow .18s,background .18s;
 }
 
-button:hover {
-  background: #cb283b;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 0 var(--azul);
+@media (hover: hover) and (pointer: fine) {
+  button:hover {
+    background: #cb283b;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 var(--azul);
+  }
 }
 
 button:active {
@@ -54,10 +58,6 @@ label {
   color: var(--azul);
 }
 
-.botao-secundario:hover {
-  background: #f9cd7d;
-}
-
 .botao-texto {
   background: transparent;
   color: var(--azul);
@@ -66,7 +66,13 @@ label {
   font-size: 14px;
 }
 
-.botao-texto:hover {
-  background: var(--creme);
-  box-shadow: none;
+@media (hover: hover) and (pointer: fine) {
+  .botao-secundario:hover {
+    background: #f9cd7d;
+  }
+
+  .botao-texto:hover {
+    background: var(--creme);
+    box-shadow: none;
+  }
 }

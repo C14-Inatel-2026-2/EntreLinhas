@@ -117,6 +117,10 @@ def consultar_jogadas(conn, partida_id):
 def finalizar_partida(conn, partida_id, pontuacao):
     with conn:
         conn.execute(
+            "UPDATE estados_partida SET fase = 'final', dica = NULL WHERE partida_id = ?",
+            (partida_id,),
+        )
+        conn.execute(
             "UPDATE partidas SET data_fim = ?, pontuacao_final = ? WHERE id = ?",
             (datetime.now().isoformat(), pontuacao, partida_id),
         )
