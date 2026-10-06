@@ -14,7 +14,7 @@ a permanência na tela de nomes.
 
 O Flask agora atende ao contrato em `static/README.md`. Os cenários em `cypress/e2e/`
 continuam usando respostas simuladas. A integração real é verificada nos testes
-Python em `tests/test_api_jogo.py` e nos dois cenários sem mock de
+Python em `backend/tests/test_api_jogo.py` e nos dois cenários sem mock de
 `cypress/real-api/fluxo.cy.js`.
 Os testes Cypress são de interface e não substituem os quatro testes unitários.
 
@@ -39,7 +39,7 @@ de jogadores; preencher os nomes não significa que eles foram persistidos.
 Requisitos: Node.js 22, 24 ou 26+, npm e Python 3 acessível como `python3`.
 O Python é usado somente para servir os arquivos estáticos durante esta suíte.
 
-Na raiz do repositório:
+A partir de `frontend/`:
 
 ```sh
 npm ci
@@ -50,7 +50,7 @@ npm run test:e2e
 No Windows, use `npm run test:e2e:windows` no lugar de `npm run test:e2e`.
 
 Para rodar os dois cenários sem mock contra a API real, inicie o Flask em outra
-janela com `py -m flask --app app run --host 127.0.0.1 --port 5000` (ou use
+janela, a partir de `backend/`, com `py -m flask --app app run --host 127.0.0.1 --port 5000` (ou use
 `python3 -m flask` fora do Windows) e execute:
 
 ```sh

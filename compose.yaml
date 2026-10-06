@@ -77,7 +77,7 @@ services:
     init: true
     networks: [tests]
     volumes:
-      - ./reports/backend:/app/reports/backend
+      - ./reports/backend:/app/backend/reports/backend
     tmpfs:
       - /tmp
 

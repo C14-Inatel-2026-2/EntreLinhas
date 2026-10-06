@@ -5,17 +5,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DATABASE_PATH=/data/jogo.db
 
-WORKDIR /app
+WORKDIR /app/backend
 
-COPY requirements.txt ./
+COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 FROM dependencies AS backend-tests
 ENV DATABASE_PATH=/tmp/test-jogo.db COVERAGE_FILE=/tmp/.coverage
-COPY app.py db.py jogo.py pytest.ini ./
-COPY src/ ./src/
-COPY tests/ ./tests/
-COPY static/ ./static/
+COPY backend/app.py backend/db.py backend/jogo.py backend/pytest.ini ./
+COPY backend/src/ ./src/
+COPY backend/tests/ ./tests/
+COPY frontend/static/ /app/frontend/static/
 CMD ["python", "-m", "pytest", "-p", "no:cacheprovider", "--junitxml=reports/backend/junit.xml", "--cov=app", "--cov=db", "--cov=jogo", "--cov=src", "--cov-report=term-missing", "--cov-report=xml:reports/backend/coverage.xml", "--cov-report=html:reports/backend/htmlcov"]
 
 # Último estágio: padrão usado pelo Railway.
@@ -30,9 +30,9 @@ RUN groupadd --gid 10001 app \
     && mkdir /data \
     && chown app:app /data
 
-COPY app.py db.py jogo.py ./
-COPY src/ ./src/
-COPY static/ ./static/
+COPY backend/app.py backend/db.py backend/jogo.py ./
+COPY backend/src/ ./src/
+COPY frontend/static/ /app/frontend/static/
 COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/entrelinhas-entrypoint
 RUN sed -i 's/\r$//' /usr/local/bin/entrelinhas-entrypoint
 

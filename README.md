@@ -16,40 +16,41 @@ errando, é descartada. O objetivo é cooperativo: preencher o máximo possível
 - **Linguagem:** Python 3
 - **Interface web:** HTML, CSS e JavaScript vanilla
 - **API:** Flask
-- **Gerenciamento de dependências:** pip (`requirements.txt`) e npm (`package-lock.json`)
+- **Gerenciamento de dependências:** pip (`backend/requirements.txt`) e npm (`frontend/package.json` e `frontend/package-lock.json`)
 - **Testes:** pytest para Python; Cypress com relatório Mochawesome para a interface
 - **Banco de dados:** SQLite
 - **CI/CD:** Jenkins com job de deploy no Railway; integração de Build e Testes em andamento
 
 ## Instalação
 
-Requisitos: Python 3.9+ e Node.js 24 (indicado em `.nvmrc`; o Cypress também aceita
-Node.js 22 e 26+). Se usar nvm, execute `nvm install` e `nvm use` na raiz.
+Requisitos: Python 3.9+ e Node.js 24 (indicado em `frontend/.nvmrc`; o Cypress também aceita
+Node.js 22 e 26+). Se usar nvm, execute `nvm install` e `nvm use` em `frontend/`.
 
 ```bash
 git clone <url-do-repositorio>
 cd entre-linhas
 python3 -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
-python -m pip install -r requirements.txt
-npm ci
+python -m pip install -r backend/requirements.txt
+npm --prefix frontend ci
 ```
 
-`requirements.txt` reúne Flask e Gunicorn para a aplicação, e pytest e pytest-cov
+`backend/requirements.txt` reúne Flask e Gunicorn para a aplicação, e pytest e pytest-cov
 para testes e cobertura.
 SQLite já faz parte do Python. As dependências de teste da interface ficam no
-`package.json`: Cypress, `cypress-mochawesome-reporter` e `start-server-and-test`,
-com versões fixas e dependências transitivas registradas em `package-lock.json`.
-Use `npm ci` ao instalar o projeto a partir do repositório.
+`frontend/package.json`: Cypress, `cypress-mochawesome-reporter` e `start-server-and-test`,
+com versões fixas e dependências transitivas registradas em `frontend/package-lock.json`.
+Use `npm --prefix frontend ci` na raiz ao instalar o projeto a partir do repositório.
 
 ## Execução
 
 ```bash
+cd backend
 python3 -m flask --app app run --host 127.0.0.1 --port 5000
 ```
 
 Abra `http://127.0.0.1:5000/static/index.html`. O Flask serve a interface e a API
-na mesma origem. As partidas e jogadas são salvas no SQLite local (`jogo.db`).
+na mesma origem. As partidas e jogadas são salvas no SQLite local (`backend/jogo.db` ao executar nessa pasta).
 
 ## Docker
 
@@ -157,19 +158,20 @@ Para executar os testes do navegador e gerar o relatório Mochawesome, com Node.
 22, 24 ou 26+ e Python 3 instalados:
 
 ```bash
-npm ci
-npm run test:e2e
+npm --prefix frontend ci
+npm --prefix frontend run test:e2e
 ```
 
-Abra `reports/cypress/index.html` para visualizar o resultado. O servidor de testes
+Abra `frontend/reports/cypress/index.html` para visualizar o resultado. O servidor de testes
 é iniciado e encerrado automaticamente. As respostas HTTP são controladas
 pelo Cypress; essa suíte valida a interface,
-não a integração com Python/SQLite. Consulte o [guia dos testes](cypress/README.md)
+não a integração com Python/SQLite. Consulte o [guia dos testes](frontend/cypress/README.md)
 para os cenários, modo interativo e limitações.
 
 Os testes Python existentes continuam separados:
 
 ```bash
+cd backend
 python3 -m pytest
 ```
 
@@ -177,40 +179,31 @@ python3 -m pytest
 
 ```text
 entre-linhas/
-├── static/                # Front-end web (SPA vanilla)
-│   ├── index.html
-│   ├── README.md          # Guia de execução e contrato da API
-│   ├── css/
-│   │   ├── style.css      # Entrada dos estilos
-│   │   ├── base/          # Variáveis, tipografia e acessibilidade
-│   │   ├── layout/        # Estrutura compartilhada
-│   │   ├── components/    # Controles, painéis, feedback, placar e tabuleiro
-│   │   └── pages/         # Início, jogadores, jogo e resultado
-│   └── js/
-│       ├── app.js
-│       ├── config.js
-│       ├── services/
-│       ├── ui/
-│       └── utils/
-├── src/
-│   ├── __init__.py
-│   ├── Baralho.py
-│   ├── main.py
-│   └── tabuleiro.py
-├── tests/
-│   └── test_baralho.py
-├── cypress/               # Testes e dados de contrato exclusivos da suíte
-│   ├── e2e/
-│   ├── fixtures/
-│   ├── support/
+├── backend/                 # API, banco e regras Python
+│   ├── app.py
+│   ├── db.py
+│   ├── jogo.py
+│   ├── src/                 # Classes de domínio
+│   ├── tests/               # Testes Python
+│   ├── pytest.ini
+│   ├── requirements.txt     # Dependências Python
 │   └── README.md
-├── cypress.config.js
-├── package.json
-├── package-lock.json
-├── db.py
-├── pytest.ini
-├── requirements.txt
+├── frontend/                # Interface e ferramentas JavaScript
+│   ├── static/              # HTML, CSS e JavaScript
+│   ├── tests/               # Testes unitários JavaScript
+│   ├── cypress/             # Testes de navegador
+│   ├── cypress.config.js
+│   ├── package.json         # Dependências e comandos npm
+│   ├── package-lock.json    # Versões transitivas fixadas
+│   ├── .nvmrc
+│   └── README.md
+├── docker/                  # Infraestrutura dos containers
+├── docs/                    # Documentação compartilhada
+├── Dockerfile               # Backend e imagem integrada Railway
+├── compose.yaml
+├── Jenkinsfile
+├── railway.json
 └── README.md
 ```
 
-Para executar e manter a interface web, consulte o [guia do front-end](static/README.md).
+Para executar e manter a interface web, consulte o [guia do front-end](frontend/README.md).
