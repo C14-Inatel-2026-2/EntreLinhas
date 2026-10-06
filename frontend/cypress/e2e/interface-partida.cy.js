@@ -74,6 +74,9 @@ describe("Interface da partida: validação, erros e resultado", () => {
       cy.get('button[data-coordenada="A3"]').click();
       cy.get("#confirmar-palpite").click();
       cy.wait("@vitoria").its("request.body").should("deep.equal", { palpite: "A3" });
+      cy.get("#resultado-palpite").should("be.visible");
+      cy.get("#titulo-palpite").should("have.text", "Acertou!");
+      cy.get("#continuar-palpite").should("have.text", "Ver resultado").click();
       cy.get("#tela-final").should("be.visible");
       cy.get("#tela-jogo").should("not.be.visible");
       cy.get("#acertos-finais").should("have.text", "1");

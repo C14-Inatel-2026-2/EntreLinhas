@@ -60,7 +60,16 @@ Os caminhos de CSS e JavaScript são relativos ao HTML; os endpoints da API são
 - Endereço do backend: `js/config.js`.
 - Transporte HTTP: `js/services/api.js`.
 
-O cliente exibe os estados enviados pelo backend. Os nomes são registrados no console junto à quantidade; sua inclusão no corpo da requisição permanece como ponto de integração em `iniciarPartida(nomes)`.
+O cliente exibe os estados enviados pelo backend. Os nomes ficam na memória da
+interface durante a partida; a API recebe a quantidade de jogadores. Quem dá a
+dica segue a ordem cadastrada, e o jogador seguinte confirma o palpite com a ajuda
+do time. Os nomes aparecem no turno e no painel de palpite.
+
+Após cada palpite, um diálogo mostra “Acertou!” ou “Errou!” conforme a atualização
+do placar retornada pela API. “Continuar” fecha o diálogo; na última rodada, o
+botão diz “Ver resultado”. Escape também fecha o diálogo, com foco devolvido à
+próxima ação. O botão “Encerrar partida agora” finaliza no backend e mostra o
+placar acumulado, inclusive antes da primeira jogada.
 
 ## Organização do CSS
 
@@ -88,6 +97,7 @@ Em `js/config.js`, `API_BASE = ""` usa a mesma origem; para outro servidor, conf
 | POST | `/partida` | `{ "num_jogadores": 2 }` | Estado completo |
 | POST | `/partida/<id>/dica` | `{ "dica": "cruzeiro" }` | Estado completo |
 | POST | `/partida/<id>/palpite` | `{ "palpite": "A3" }` | Estado completo |
+| POST | `/partida/<id>/encerrar` | — | Estado final com placar acumulado |
 | GET | `/partida/<id>/placar` | — | `{ "acertos": 1, "erros": 0 }` |
 
 Erros HTTP podem retornar `{ "erro": "Mensagem para o jogador" }`.

@@ -49,6 +49,28 @@
   font-size: 13px;
 }
 
+.jogador-palpite {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+#turno {
+  overflow-wrap: anywhere;
+}
+
+.botao-encerrar {
+  background: var(--branco);
+  color: var(--azul);
+  box-shadow: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .botao-encerrar:hover {
+    background: #ffe2dd;
+    box-shadow: none;
+  }
+}
+
 .mensagem-rodada:empty {
   display: none;
 }

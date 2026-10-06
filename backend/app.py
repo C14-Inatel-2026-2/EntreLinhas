@@ -107,6 +107,24 @@ def rota_dica(partida_id):
     finally:
         conn.close()
 
+@app.route("/partida/<int:partida_id>/encerrar", methods=["POST"])
+def rota_encerrar_partida(partida_id):
+    conn = conectar_bd()
+    try:
+        partida = consultar_partida(conn, partida_id)
+        progresso = consultar_estado(conn, partida_id)
+        if not partida or not progresso:
+            return jsonify({"erro": "Partida não encontrada"}), 404
+
+        jogadas = consultar_jogadas(conn, partida_id)
+        if progresso["fase"] != "final":
+            pontuacao = sum(jogada["acertou"] for jogada in jogadas)
+            finalizar_partida(conn, partida_id, pontuacao)
+            progresso = consultar_estado(conn, partida_id)
+        return jsonify(montar_estado(partida, progresso, jogadas)), 200
+    finally:
+        conn.close()
+
 @app.route("/partida/<int:partida_id>/palpite", methods=["POST"])
 def rota_palpite(partida_id):
     conn = conectar_bd()

@@ -147,6 +147,9 @@ que dependam do ID de um serviço Railway.
 - [x] Exibição da carta secreta ao jogador da vez
 - [x] Envio de dica e validação (uma única palavra)
 - [x] Tentativa de palpite de coordenada
+- [x] Pop-up de acerto e erro após cada palpite
+- [x] Nome de quem dá a dica e de quem confirma o palpite
+- [x] Encerramento antecipado com preservação do placar
 - [x] Atualização de tabuleiro e pontuação
 - [x] Histórico de dicas da partida no banco de dados
 - [x] Pontuação final

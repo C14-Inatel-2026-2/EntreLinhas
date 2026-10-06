@@ -14,7 +14,7 @@ a permanência na tela de nomes.
 
 O Flask agora atende ao contrato em `static/README.md`. Os cenários em `cypress/e2e/`
 continuam usando respostas simuladas. A integração real é verificada nos testes
-Python em `backend/tests/test_api_jogo.py` e nos dois cenários sem mock de
+Python em `backend/tests/test_api_jogo.py` e nos cenários sem mock de
 `cypress/real-api/fluxo.cy.js`.
 Os testes Cypress são de interface e não substituem os quatro testes unitários.
 
@@ -31,8 +31,9 @@ As verificações cobrem navegação, formulários e renderização da interface
 cenários também conferem o corpo enviado pelo navegador e o status 500 simulado.
 Não comprova regras Python, cálculo de pontuação, persistência SQLite ou integração
 com uma API real. Os resultados de acerto e erro são respostas controladas, não
-decisões calculadas pelo teste. A aplicação atualmente envia somente a quantidade
-de jogadores; preencher os nomes não significa que eles foram persistidos.
+decisões calculadas pelo teste. A aplicação envia somente a quantidade de
+jogadores; os nomes identificam os turnos na interface e permanecem na memória
+do navegador durante a partida.
 
 ## Preparar e executar
 
@@ -49,7 +50,7 @@ npm run test:e2e
 
 No Windows, use `npm run test:e2e:windows` no lugar de `npm run test:e2e`.
 
-Para rodar os dois cenários sem mock contra a API real, inicie o Flask em outra
+Para rodar os cenários sem mock contra a API real, inicie o Flask em outra
 janela, a partir de `backend/`, com `py -m flask --app app run --host 127.0.0.1 --port 5000` (ou use
 `python3 -m flask` fora do Windows) e execute:
 
@@ -83,6 +84,12 @@ de testes explicitamente com `npx cypress install`. Em Linux, o navegador també
 precisa das [dependências de sistema do Cypress](https://docs.cypress.io/app/get-started/install-cypress).
 
 ## Cenários
+
+Os novos fluxos verificam pop-ups de acerto e erro, fechamento pelo botão e por
+Escape, retorno do foco, nomes nos turnos e encerramento imediato nas fases de
+dica e palpite. Também cobrem falhas HTTP sem alterar o placar nem simular um erro
+de jogada. A suíte real joga nove rodadas com três participantes e verifica a
+persistência do encerramento antecipado.
 
 - Fluxo completo em desktop (1280×900) e celular (390×844): iniciar, preencher nomes,
   revelar/ocultar carta, dar dica, selecionar/trocar palpite, receber acerto, passar
