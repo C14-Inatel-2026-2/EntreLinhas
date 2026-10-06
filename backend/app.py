@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from flask import Flask, request, jsonify, redirect
 from db import (
     conectar_bd, criar_tabelas, criar_partida, consultar_partida, salvar_jogada,
@@ -5,7 +7,11 @@ from db import (
 )
 from jogo import criar_cartas, montar_estado
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_folder=str(Path(__file__).resolve().parent.parent / "frontend" / "static"),
+    static_url_path="/static",
+)
 
 
 @app.route("/")

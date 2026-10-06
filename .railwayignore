@@ -17,3 +17,8 @@ __pycache__/
 htmlcov/
 coverage/
 reports/
+
+**/node_modules/
+**/.venv/
+**/.pytest_cache/
+**/reports/

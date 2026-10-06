@@ -108,7 +108,7 @@ do projeto. Não versione tokens no repositório.
   a localhost. Logs da aplicação possuem rotação de 10 MB, com até três arquivos.
 - Gunicorn e Nginx executam diretamente, permitindo receber sinais de parada.
 
-Foi mantido um único `requirements.txt`, conforme a escolha do grupo. Assim,
+Foi mantido um único `backend/requirements.txt`, conforme a escolha do grupo. Assim,
 pytest e cobertura também são instalados na imagem da aplicação. Os fontes dos
 testes e os relatórios ficam apenas no estágio de testes.
 
@@ -119,3 +119,9 @@ propriedade do volume, e o entrypoint reduz os privilégios antes do Gunicorn.
 Referências: [volumes Railway](https://docs.railway.com/volumes),
 [configuração versionada](https://docs.railway.com/config-as-code/reference) e
 [healthchecks](https://docs.railway.com/deployments/healthchecks).
+
+## Estrutura do monorepo
+
+Os builds usam a raiz como contexto. O Dockerfile Python copia fontes e dependências
+de backend/ e a interface de frontend/static/. Os Dockerfiles de frontend copiam
+apenas frontend/. Compose e Railway continuam sendo executados na raiz.

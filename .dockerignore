@@ -1,23 +1,11 @@
 # Apenas entradas necess?rias para as imagens da aplica??o e dos testes.
 **
-!requirements.txt
-!app.py
-!db.py
-!jogo.py
-!pytest.ini
-!package.json
-!package-lock.json
-!cypress.config.js
-!src/
-!src/**
-!static/
-!static/**
+!backend/
+!backend/**
+!frontend/
+!frontend/**
 !docker/
 !docker/**
-!tests/
-!tests/**
-!cypress/
-!cypress/**
 
 # Mesmo nos diret?rios permitidos, excluir artefatos e segredos.
 **/__pycache__/**
@@ -32,3 +20,7 @@
 **/reports/**
 **/screenshots/**
 **/videos/**
+
+**/node_modules/**
+**/.venv/**
+**/.pytest_cache/**
