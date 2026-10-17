@@ -22,7 +22,9 @@ services:
     container_name: jenkins-entrelinhas
     init: true
     restart: unless-stopped
-    shm_size: 1gb  # Electron/Cypress trava com o /dev/shm padrão de 64 MB
+    shm_size: 1gb  # Memória compartilhada para o navegador do Cypress.
+    environment:
+      JAVA_OPTS: "${JENKINS_JAVA_OPTS:--Xms128m -Xmx384m}"
     ports:
       - "127.0.0.1:${JENKINS_PORT:-8081}:8080"
     volumes:

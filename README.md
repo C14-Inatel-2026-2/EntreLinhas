@@ -128,6 +128,10 @@ para validar esta branch, publique-a e informe seu SHA completo.
 Após alterar `docker/Dockerfile.jenkins`, reconstrua a imagem com
 `docker compose --profile ci up --build -d --wait jenkins`.
 O Jenkins usa Chromium, Xvfb e bibliotecas do Cypress; o Compose reserva 1 GB de `/dev/shm`.
+O heap Java fica limitado a 384 MB e pode ser ajustado com `JENKINS_JAVA_OPTS`.
+Recomenda-se reservar ao menos 4 GB de RAM ao Docker para Jenkins e navegador,
+conforme os [requisitos de CI do Cypress](https://docs.cypress.io/app/get-started/install-cypress#Hardware).
+Evite executar vários controladores Jenkins ao mesmo tempo em VMs pequenas.
 
 Crie o job Pipeline `EntreLinhas-Deploy`, selecione **Pipeline script**, copie
 o conteúdo do `Jenkinsfile` e mantenha **Use Groovy Sandbox** ativado.
