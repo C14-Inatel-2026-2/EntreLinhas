@@ -88,7 +88,8 @@ Os jobs de teste e seus relatórios ficam no Jenkins, sem serviços ou volumes
 de testes no Railway. Para atender à disciplina, desative o autodeploy por push
 e deixe o job Deploy do Jenkins publicar somente depois dos testes aprovados.
 O pipeline único do `Jenkinsfile` integra os testes e o deploy. O parâmetro
-`DEPLOY` desmarcado executa somente CI; marcado exige a credencial
+`DEPLOY` desmarcado executa somente CI em builds manuais. O polling da `main`
+aciona testes e deploy automaticamente a cada revisão nova; a publicação exige a credencial
 `railway-project-token` e aprovação das duas suítes para o mesmo SHA.
 A verificação pública confere também o commit em `/static/release.json`.
 Não versione tokens no repositório.

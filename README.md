@@ -19,7 +19,7 @@ errando, é descartada. O objetivo é cooperativo: preencher o máximo possível
 - **Gerenciamento de dependências:** pip (`backend/requirements.txt`) e npm (`frontend/package.json` e `frontend/package-lock.json`)
 - **Testes:** pytest para Python; Cypress com relatório Mochawesome para a interface
 - **Banco de dados:** SQLite
-- **CI/CD:** Jenkins com job de deploy no Railway; integração de Build e Testes em andamento
+- **CI/CD:** Jenkins com testes, relatórios, cobertura e deploy automático no Railway após alterações na `main`
 
 ## Instalação
 
@@ -111,19 +111,31 @@ Evite esse comando para preservar também o volume SQLite do jogo.
 Em outra máquina, a primeira execução exige configurar usuário, plugins e jobs.
 
 O pipeline é único (um job): `Preparar commit` → `Build` →
-`Testes de backend e cobertura` → `Frontend/Cypress - Mateus` → `Deploy - Fernando`.
-O backend executa toda a suíte Python, incluindo jogo e baralho, uma única vez,
-com JUnit e cobertura XML/HTML em `reports/backend/`. O stage do Mateus roda
+`Testes de jogo e baralho - Caio` → `Backend e cobertura - Henrique` →
+`Frontend/Cypress - Mateus` → `Deploy - Fernando`.
+Os testes Python são divididos sem duplicação: jogo e baralho no stage do Caio,
+com relatórios em `reports/domain/`, e os demais casos no stage do Henrique,
+com JUnit e cobertura XML/HTML em `reports/backend/`. A cobertura final agrega
+as duas execuções. O stage do Mateus roda
 unitários com cobertura e Cypress (mock e API real), com Flask e SQLite
 temporários. Os relatórios e o log do Flask ficam em `frontend/reports/`,
 arquivados mesmo em falha. O servidor e o banco de teste são descartados ao final.
 A instalação de dependências ocorre apenas no stage Build.
 
-`DEPLOY` vem **desmarcado**: assim é possível validar uma branch sem credenciais
-Railway e sem publicar. Para publicar, marque-o; backend e frontend precisam
-aprovar o mesmo SHA neste build. Falha, interrupção ou resultado instável bloqueia
-a publicação. `COMMIT_SHA` vazio resolve uma única vez a ponta da `main`;
-para validar esta branch, publique-a e informe seu SHA completo.
+O job consulta a `main` a cada dois minutos com `pollSCM('H/2 * * * *')`.
+Quando detecta uma revisão nova, executa todos os stages e publica automaticamente
+somente se tudo passar. A consulta exige que o computador, Docker e Jenkins
+estejam ligados e com internet. Não precisa de webhook público nem GitHub Actions.
+Sem alteração no repositório, a consulta não inicia outro build. Commits feitos
+somente em branches de trabalho não publicam; aprovação e merge das PRs continuam
+sob controle dos integrantes.
+
+Em acionamentos automáticos, o Jenkins usa a ponta da `main`, resolvida uma única
+vez, e ignora `COMMIT_SHA` ou `DEPLOY` de execuções manuais anteriores.
+Em acionamentos **manuais**, `DEPLOY` continua desmarcado por padrão para permitir
+validar uma branch sem publicar. Marque-o somente quando quiser publicar nessa
+execução. Todos os stages precisam aprovar o mesmo SHA; falhas, interrupções ou
+resultado instável bloqueiam a publicação.
 
 Após alterar `docker/Dockerfile.jenkins`, reconstrua a imagem com
 `docker compose --profile ci up --build -d --wait jenkins`.
@@ -144,14 +156,15 @@ Em **Build with Parameters**, informe:
 | Parâmetro | Valor |
 | --- | --- |
 | `COMMIT_SHA` | SHA completo de 40 caracteres a testar; vazio usa `main` |
-| `DEPLOY` | Desmarcado: somente CI; marcado: testes e publicação |
+| `DEPLOY` | Execução manual: desmarcado = somente CI; marcado = testes e publicação. Polling da main publica automaticamente após os testes. |
 | `RAILWAY_PROJECT_ID` | `67641175-19f1-4597-a518-3ddea95e22fa` |
 | `RAILWAY_SERVICE` | `EntreLinhas`, ou ID do serviço |
 | `RAILWAY_ENVIRONMENT` | `production`, ou ambiente associado ao token |
 | `PUBLIC_URL` | `https://entrelinhas-production-7e6e.up.railway.app` |
 
 O pipeline baixa o repositório, seleciona o SHA, instala dependências e executa
-as suítes. Quando `DEPLOY` está marcado, publica com `railway up --ci` e espera
+as suítes. Quando acionado pelo polling, ou manualmente com `DEPLOY` marcado,
+publica com `railway up --ci` e espera
 que `/static/release.json` informe o SHA testado, além de verificar `/health` e
 `/static/index.html`. Isso impede aprovar apenas a versão anterior ainda no ar.
 O marcador é um artefato temporário gerado pelo deploy, incluído na imagem e
