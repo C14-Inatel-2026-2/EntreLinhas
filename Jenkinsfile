@@ -37,6 +37,26 @@ timeout(time: 30, unit: 'MINUTES') {
                 .venv/bin/python -m pip install -r backend/requirements.txt
             '''
         }
+        stage('Testes de backend e cobertura') {
+            withEnv(["PATH+PYTEST=${env.WORKSPACE}/.venv/bin"]) {
+                dir('backend') {
+                    sh '../.venv/bin/python -m pip install pytest-cov'
+                    try {
+                        sh 'pytest tests/ --junitxml=report-backend.xml --cov=. --cov-report=xml:report-coverage.xml --cov-report=html:coverage_html'
+                    } finally {
+                        junit 'report-backend.xml'
+                        publishHTML(target: [
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: 'coverage_html',
+                            reportFiles: 'index.html',
+                            reportName: 'Relatorio de Cobertura Backend'
+                        ])
+                    }
+                }
+            }
+        }
         stage('Testes de jogo e baralho') {
             withEnv(["PATH+PYTEST=${env.WORKSPACE}/.venv/bin"]) {
                 dir('backend') {
