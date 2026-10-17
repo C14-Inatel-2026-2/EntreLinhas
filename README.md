@@ -127,7 +127,7 @@ para validar esta branch, publique-a e informe seu SHA completo.
 
 Após alterar `docker/Dockerfile.jenkins`, reconstrua a imagem com
 `docker compose --profile ci up --build -d --wait jenkins`.
-O Jenkins tem Xvfb e bibliotecas do Cypress; o Compose reserva 1 GB de `/dev/shm`.
+O Jenkins usa Chromium, Xvfb e bibliotecas do Cypress; o Compose reserva 1 GB de `/dev/shm`.
 
 Crie o job Pipeline `EntreLinhas-Deploy`, selecione **Pipeline script**, copie
 o conteúdo do `Jenkinsfile` e mantenha **Use Groovy Sandbox** ativado.

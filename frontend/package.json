@@ -16,7 +16,7 @@
     "test:e2e:windows": "start-server-and-test web:windows http://127.0.0.1:8000 e2e:run",
     "test:e2e:open": "start-server-and-test web http://127.0.0.1:8000 e2e:open",
     "e2e:run": "cypress run --browser electron",
-    "e2e:ci": "cypress run --browser electron --spec \"cypress/e2e/**/*.cy.js,cypress/real-api/**/*.cy.js\"",
+    "e2e:ci": "cypress run --config \"specPattern=cypress/**/*.cy.js\"",
     "e2e:open": "cypress open"
   },
   "devDependencies": {

@@ -74,7 +74,7 @@ def main():
                 else:
                     raise RuntimeError("Flask não ficou pronto; veja frontend/reports/flask.log")
                 print(f"Flask pronto em {base}; banco temporário isolado.", flush=True)
-                executar(["npm", "run", "e2e:ci"], cwd=ROOT / "frontend",
+                executar(["npm", "run", "e2e:ci", "--", "--browser", os.environ.get("CYPRESS_BROWSER", "electron")], cwd=ROOT / "frontend",
                                env={**os.environ, "CYPRESS_BASE_URL": base})
             finally:
                 # Encerra e espera o grupo inteiro, inclusive o worker, antes de apagar o banco.

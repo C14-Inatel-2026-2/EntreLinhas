@@ -7,7 +7,7 @@ COPY --from=node /usr/local/ /usr/local/
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends python3 python3-venv python3-pip \
-        xvfb xauth libgtk-3-0 libgbm1 libnotify4 libnss3 libxss1 libxtst6 \
+        chromium xvfb xauth libgtk-3-0 libgbm1 libnotify4 libnss3 libxss1 libxtst6 \
         "$(apt-cache show libasound2t64 >/dev/null 2>&1 && echo libasound2t64 || echo libasound2)"
 RUN --mount=type=cache,target=/root/.npm \
     npm install --global --allow-scripts=@railway/cli @railway/cli@5.63.1

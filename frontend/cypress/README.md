@@ -137,3 +137,5 @@ Trocar apenas `baseUrl` na suíte `cypress/e2e/` mantém as respostas simuladas.
 Na raiz, após instalar as dependências em `.venv` e `frontend/node_modules`,
 execute `.venv/bin/python scripts/ci/frontend.py` para reproduzir o stage do
 Jenkins: unitários, servidor temporário, Cypress completo e limpeza automática.
+O Jenkins define `CYPRESS_BROWSER=chromium`; localmente o script usa Electron
+por padrão. `e2e:ci` amplia `specPattern` para incluir as duas pastas de cenários.

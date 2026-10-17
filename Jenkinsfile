@@ -76,7 +76,9 @@ timeout(time: 30, unit: 'MINUTES') {
         stage('Frontend/Cypress - Mateus') {
             try {
                 timeout(time: 15, unit: 'MINUTES') {
-                    sh '.venv/bin/python scripts/ci/frontend.py'
+                    withEnv(['CYPRESS_BROWSER=chromium']) {
+                        sh '.venv/bin/python scripts/ci/frontend.py'
+                    }
                 }
                 env.TESTS_APPROVED_COMMIT = env.RELEASE_COMMIT
             } finally {
