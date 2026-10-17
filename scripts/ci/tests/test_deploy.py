@@ -22,7 +22,7 @@ class DeployTests(unittest.TestCase):
         (self.root / "frontend/static").mkdir(parents=True)
         self.marker = self.root / "frontend/static/release.json"
         self.env = {
-            "RELEASE_COMMIT": SHA, "BACKEND_APPROVED_COMMIT": SHA,
+            "RELEASE_COMMIT": SHA, "DOMAIN_APPROVED_COMMIT": SHA, "BACKEND_APPROVED_COMMIT": SHA,
             "TESTS_APPROVED_COMMIT": SHA, "RAILWAY_PROJECT_ID": "test-project",
             "RAILWAY_SERVICE": "test-service", "RAILWAY_ENVIRONMENT": "test",
             "PUBLIC_URL": "https://example.test",
@@ -30,6 +30,12 @@ class DeployTests(unittest.TestCase):
         for context in (patch.object(deploy, "ROOT", self.root), patch.dict(os.environ, self.env)):
             context.start()
             self.addCleanup(context.stop)
+
+    def test_missing_domain_approval_prevents_upload(self):
+        with patch.dict(os.environ, {"DOMAIN_APPROVED_COMMIT": ""}), patch.object(deploy.subprocess, "run") as upload:
+            with self.assertRaisesRegex(SystemExit, "DOMAIN_APPROVED_COMMIT"):
+                deploy.main()
+            upload.assert_not_called()
 
     def test_missing_suite_approval_prevents_upload(self):
         with patch.dict(os.environ, {"BACKEND_APPROVED_COMMIT": ""}), patch.object(deploy.subprocess, "run") as upload:

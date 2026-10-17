@@ -14,7 +14,7 @@ def main():
     commit = os.environ["RELEASE_COMMIT"]
     if not re.fullmatch(r"[0-9a-f]{40}", commit):
         raise SystemExit("RELEASE_COMMIT inválido")
-    for name in ("BACKEND_APPROVED_COMMIT", "TESTS_APPROVED_COMMIT"):
+    for name in ("DOMAIN_APPROVED_COMMIT", "BACKEND_APPROVED_COMMIT", "TESTS_APPROVED_COMMIT"):
         if os.environ.get(name) != commit:
             raise SystemExit(f"Deploy bloqueado: {name} não aprova o SHA solicitado")
     actual = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
