@@ -132,5 +132,10 @@ instaladas, caches, downloads e relatórios gerados ficam fora do Git.
 
 A integração segue a [configuração do cypress-mochawesome-reporter](https://github.com/LironEr/cypress-mochawesome-reporter).
 
-Trocar apenas `baseUrl` nesta suíte não remove as respostas simuladas nem passa a
-validar o backend. Testes de API e banco ficam fora deste escopo.
+Trocar apenas `baseUrl` na suíte `cypress/e2e/` mantém as respostas simuladas.
+`npm run e2e:ci` inclui também `cypress/real-api/`, que usa Flask e SQLite reais.
+Na raiz, após instalar as dependências em `.venv` e `frontend/node_modules`,
+execute `.venv/bin/python scripts/ci/frontend.py` para reproduzir o stage do
+Jenkins: unitários, servidor temporário, Cypress completo e limpeza automática.
+O Jenkins define `CYPRESS_BROWSER=chromium`; localmente o script usa Electron
+por padrão. `e2e:ci` amplia `specPattern` para incluir as duas pastas de cenários.
