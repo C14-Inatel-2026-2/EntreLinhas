@@ -1,0 +1,26 @@
+# Apenas entradas necess?rias para as imagens da aplica??o e dos testes.
+**
+!backend/
+!backend/**
+!frontend/
+!frontend/**
+!docker/
+!docker/**
+
+# Mesmo nos diret?rios permitidos, excluir artefatos e segredos.
+**/__pycache__/**
+**/*.pyc
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.db
+**/*.db-*
+**/*.sqlite*
+**/reports/**
+**/screenshots/**
+**/videos/**
+
+**/node_modules/**
+**/.venv/**
+**/.pytest_cache/**

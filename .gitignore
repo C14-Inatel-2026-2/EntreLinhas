@@ -33,12 +33,12 @@ htmlcov/
 .tox/
 
 # Cypress e relatórios Mochawesome (gerados a cada execução)
-/reports/
-/mochawesome-report/
-/cypress/reports/
-/cypress/screenshots/
-/cypress/videos/
-/cypress/downloads/
+reports/
+mochawesome-report/
+/cypressreports/
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
 
 # Manter versionados: package.json, package-lock.json, .nvmrc,
 # cypress.config.js, cypress/e2e/, cypress/fixtures/ e cypress/support/.

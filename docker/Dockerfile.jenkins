@@ -1,0 +1,13 @@
+# syntax=docker/dockerfile:1
+FROM node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS node
+FROM jenkins/jenkins:2.580.1-jdk21@sha256:a660310e39ade10631f774bacd5219de767dfd08947ea5c32a739b5e5bb382c1 AS runtime
+USER root
+WORKDIR /var/jenkins_home
+COPY --from=node /usr/local/ /usr/local/
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends python3 python3-venv python3-pip
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --global --allow-scripts=@railway/cli @railway/cli@5.63.1
+USER jenkins
+RUN git --version && python3 --version && node --version && railway --version
