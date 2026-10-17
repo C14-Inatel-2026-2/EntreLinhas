@@ -110,6 +110,14 @@ O volume do Jenkins é externo ao Compose; não é removido por `down -v`.
 Evite esse comando para preservar também o volume SQLite do jogo.
 Em outra máquina, a primeira execução exige configurar usuário, plugins e jobs.
 
+O pipeline é único (um job) e tem os stages `Preparar commit` → `Frontend/Cypress - Mateus`
+→ `Deploy - Fernando`. O stage de frontend sobe o Flask com um banco temporário, espera
+`/health`, roda os testes unitários com cobertura e o Cypress (mock e API real) contra o
+Flask, arquiva `frontend/reports/**` e encerra o servidor mesmo em falha. O Deploy só
+executa se o stage anterior passou, para o mesmo SHA. `COMMIT_SHA` vazio usa a ponta da
+`main`. Após alterar `docker/Dockerfile.jenkins`, reconstrua a imagem do Jenkins
+(dependências do Cypress/Xvfb): `docker compose --profile ci up --build -d --wait jenkins`.
+
 Crie o job Pipeline `EntreLinhas-Deploy`, selecione **Pipeline script**, copie
 o conteúdo do `Jenkinsfile` e mantenha **Use Groovy Sandbox** ativado.
 Ao alterar o arquivo, atualize também o script salvo no job.
