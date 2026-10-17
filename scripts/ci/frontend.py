@@ -17,12 +17,33 @@ def interromper(signum, frame):
     raise SystemExit(128 + signum)
 
 
+def encerrar(process):
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        process.wait()
+    except ProcessLookupError:
+        process.wait()
+
+
+def executar(command, **kwargs):
+    process = subprocess.Popen(command, start_new_session=True, **kwargs)
+    try:
+        status = process.wait()
+        if status:
+            raise subprocess.CalledProcessError(status, command)
+    finally:
+        encerrar(process)
+
+
 def main():
     for signum in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
         signal.signal(signum, interromper)
     reports = ROOT / "frontend/reports"
     (reports / "frontend").mkdir(parents=True, exist_ok=True)
-    subprocess.run(["npm", "run", "test:unit:ci"], cwd=ROOT / "frontend", check=True)
+    executar(["npm", "run", "test:unit:ci"], cwd=ROOT / "frontend")
     with tempfile.TemporaryDirectory(prefix="entrelinhas-e2e-") as temporary:
         # Mantém a porta reservada até o Gunicorn herdar o socket.
         with socket.socket() as listener, (reports / "flask.log").open("w") as log:
@@ -53,18 +74,12 @@ def main():
                 else:
                     raise RuntimeError("Flask não ficou pronto; veja frontend/reports/flask.log")
                 print(f"Flask pronto em {base}; banco temporário isolado.", flush=True)
-                subprocess.run(["npm", "run", "e2e:ci"], cwd=ROOT / "frontend", check=True,
+                executar(["npm", "run", "e2e:ci"], cwd=ROOT / "frontend",
                                env={**os.environ, "CYPRESS_BASE_URL": base})
             finally:
                 # Encerra e espera o grupo inteiro, inclusive o worker, antes de apagar o banco.
-                try:
-                    os.killpg(server.pid, signal.SIGTERM)
-                    server.wait(timeout=10)
-                except subprocess.TimeoutExpired:
-                    os.killpg(server.pid, signal.SIGKILL)
-                    server.wait()
-                except ProcessLookupError:
-                    server.wait()
+                encerrar(server)
+
 
 
 if __name__ == "__main__":

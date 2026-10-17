@@ -74,6 +74,3 @@ cypress/downloads/
 .DS_Store
 ._*
 Thumbs.db
-
-# Identificação do commit gerada somente durante o deploy Jenkins.
-/frontend/static/release.json

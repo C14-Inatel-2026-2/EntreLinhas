@@ -22,8 +22,10 @@ def main():
         ["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT, text=True).strip()
     if actual != commit or changed:
         raise SystemExit("Deploy bloqueado: checkout diferente do commit testado ou arquivos alterados")
-    # Artefato de build ignorado pelo Git; incluído no COPY frontend/static do Dockerfile.
+    # Artefato temporário de build, incluído no COPY frontend/static do Dockerfile.
     marker = ROOT / "frontend/static/release.json"
+    if marker.exists():
+        raise SystemExit("Marcador de release preexistente: remova-o antes de publicar")
     marker.write_text(json.dumps({"commit": commit}) + "\n")
     try:
         subprocess.run([

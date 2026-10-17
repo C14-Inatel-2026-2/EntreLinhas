@@ -68,6 +68,14 @@ class DeployTests(unittest.TestCase):
             self.assertEqual(public.call_count, 3)
         self.assertFalse(self.marker.exists())
 
+    def test_existing_marker_is_preserved_and_blocks_upload(self):
+        self.marker.write_text("existing build")
+        with patch.object(deploy.subprocess, "check_output", side_effect=[SHA, ""]), patch.object(deploy.subprocess, "run") as upload:
+            with self.assertRaisesRegex(SystemExit, "preexistente"):
+                deploy.main()
+            upload.assert_not_called()
+        self.assertEqual(self.marker.read_text(), "existing build")
+
     def test_railway_failure_removes_marker_and_fails_build(self):
         with patch.object(deploy.subprocess, "check_output", side_effect=[SHA, ""]), patch.object(deploy.subprocess, "run", side_effect=subprocess.CalledProcessError(1, "railway")), patch.object(deploy, "urlopen") as public:
             with self.assertRaises(subprocess.CalledProcessError):
