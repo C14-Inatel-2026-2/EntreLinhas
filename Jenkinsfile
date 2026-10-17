@@ -40,7 +40,7 @@ timeout(time: 30, unit: 'MINUTES') {
         stage('Testes de backend e cobertura') {
             withEnv(["PATH+PYTEST=${env.WORKSPACE}/.venv/bin"]) {
                 dir('backend') {
-                    sh '.venv/bin/python -m pip install pytest-cov'
+                    sh '../.venv/bin/python -m pip install pytest-cov'
                     try {
                         sh 'pytest tests/ --junitxml=report-backend.xml --cov=. --cov-report=xml:report-coverage.xml --cov-report=html:coverage_html'
                     } finally {
