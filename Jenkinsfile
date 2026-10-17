@@ -1,8 +1,8 @@
-// Job de Fernando: publica o commit recebido do pipeline após Build e Testes.
+// Prepara e testa o commit recebido antes de publicá-lo no Railway.
 properties([
     disableConcurrentBuilds(),
     parameters([
-        string(name: 'COMMIT_SHA', defaultValue: '', description: 'SHA completo aprovado nas etapas anteriores de Build e Testes.'),
+        string(name: 'COMMIT_SHA', defaultValue: '', description: 'SHA completo a preparar, testar e publicar.'),
         string(name: 'RAILWAY_PROJECT_ID', defaultValue: '67641175-19f1-4597-a518-3ddea95e22fa', description: 'ID do projeto Railway.'),
         string(name: 'RAILWAY_SERVICE', defaultValue: 'EntreLinhas', description: 'Nome ou ID do serviço Railway.'),
         string(name: 'RAILWAY_ENVIRONMENT', defaultValue: 'production', description: 'Ambiente Railway.'),
@@ -30,6 +30,23 @@ timeout(time: 30, unit: 'MINUTES') {
                 error('PUBLIC_URL precisa ser um domínio HTTPS, sem caminho ou credenciais.')
             }
             sh 'command -v railway; command -v python3; railway --version'
+        }
+        stage('Build') {
+            sh '''
+                python3 -m venv .venv
+                .venv/bin/python -m pip install -r backend/requirements.txt
+            '''
+        }
+        stage('Testes de jogo e baralho') {
+            withEnv(["PATH+PYTEST=${env.WORKSPACE}/.venv/bin"]) {
+                dir('backend') {
+                    try {
+                        sh 'pytest tests/test_jogo.py tests/test_baralho.py --junitxml=report-dominio.xml'
+                    } finally {
+                        junit 'report-dominio.xml'
+                    }
+                }
+            }
         }
         stage('Deploy - Fernando') {
             withCredentials([string(credentialsId: 'railway-project-token', variable: 'RAILWAY_TOKEN')]) {
