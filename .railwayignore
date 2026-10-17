@@ -22,3 +22,6 @@ reports/
 **/.venv/
 **/.pytest_cache/
 **/reports/
+
+# Inclui o artefato de versão, mesmo ignorado no desenvolvimento local.
+!frontend/static/release.json

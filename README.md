@@ -85,16 +85,16 @@ $env:APP_PORT = "8000"
 docker compose up --build -d --wait
 ```
 
-O job Build do Jenkins poderá executar `docker compose build`. `IMAGE_TAG`
-permite identificar a imagem pelo hash do commit. A integração dos jobs de
-Build e Testes com o Deploy ainda deve ser concluída.
+`IMAGE_TAG` permite identificar a imagem local pelo hash do commit. No Jenkins,
+o pipeline único instala as dependências, testa backend e frontend e só então
+permite publicar no Railway.
 
 ## Deploy Jenkins → Railway
 
 O `Jenkinsfile` executa o deploy no próprio servidor Jenkins Linux, pelo executor
 `built-in`. O servidor precisa de Git, Bash, Python 3, Node.js e Railway CLI
 (`npm install -g @railway/cli@5.63.1`), além dos plugins Pipeline, Git e
-Credentials Binding. O serviço `jenkins` do Compose inclui Git, Python com pip/venv,
+Credentials Binding e JUnit. O serviço `jenkins` do Compose inclui Git, Python com pip/venv,
 Node.js 24 e Railway CLI na imagem, preservando as ferramentas nas reconstruções.
 
 ```bash
@@ -110,13 +110,24 @@ O volume do Jenkins é externo ao Compose; não é removido por `down -v`.
 Evite esse comando para preservar também o volume SQLite do jogo.
 Em outra máquina, a primeira execução exige configurar usuário, plugins e jobs.
 
-O pipeline é único (um job) e tem os stages `Preparar commit` → `Frontend/Cypress - Mateus`
-→ `Deploy - Fernando`. O stage de frontend sobe o Flask com um banco temporário, espera
-`/health`, roda os testes unitários com cobertura e o Cypress (mock e API real) contra o
-Flask, arquiva `frontend/reports/**` e encerra o servidor mesmo em falha. O Deploy só
-executa se o stage anterior passou, para o mesmo SHA. `COMMIT_SHA` vazio usa a ponta da
-`main`. Após alterar `docker/Dockerfile.jenkins`, reconstrua a imagem do Jenkins
-(dependências do Cypress/Xvfb): `docker compose --profile ci up --build -d --wait jenkins`.
+O pipeline é único (um job): `Preparar commit` → `Build` →
+`Testes de backend e cobertura` → `Frontend/Cypress - Mateus` → `Deploy - Fernando`.
+O backend executa toda a suíte Python, incluindo jogo e baralho, uma única vez,
+com JUnit e cobertura XML/HTML em `reports/backend/`. O stage do Mateus roda
+unitários com cobertura e Cypress (mock e API real), com Flask e SQLite
+temporários. Os relatórios e o log do Flask ficam em `frontend/reports/`,
+arquivados mesmo em falha. O servidor e o banco de teste são descartados ao final.
+A instalação de dependências ocorre apenas no stage Build.
+
+`DEPLOY` vem **desmarcado**: assim é possível validar uma branch sem credenciais
+Railway e sem publicar. Para publicar, marque-o; backend e frontend precisam
+aprovar o mesmo SHA neste build. Falha, interrupção ou resultado instável bloqueia
+a publicação. `COMMIT_SHA` vazio resolve uma única vez a ponta da `main`;
+para validar esta branch, publique-a e informe seu SHA completo.
+
+Após alterar `docker/Dockerfile.jenkins`, reconstrua a imagem com
+`docker compose --profile ci up --build -d --wait jenkins`.
+O Jenkins tem Xvfb e bibliotecas do Cypress; o Compose reserva 1 GB de `/dev/shm`.
 
 Crie o job Pipeline `EntreLinhas-Deploy`, selecione **Pipeline script**, copie
 o conteúdo do `Jenkinsfile` e mantenha **Use Groovy Sandbox** ativado.
@@ -128,17 +139,19 @@ Em **Build with Parameters**, informe:
 
 | Parâmetro | Valor |
 | --- | --- |
-| `COMMIT_SHA` | SHA completo de 40 caracteres aprovado em Build e Testes |
+| `COMMIT_SHA` | SHA completo de 40 caracteres a testar; vazio usa `main` |
+| `DEPLOY` | Desmarcado: somente CI; marcado: testes e publicação |
 | `RAILWAY_PROJECT_ID` | `67641175-19f1-4597-a518-3ddea95e22fa` |
 | `RAILWAY_SERVICE` | `EntreLinhas`, ou ID do serviço |
 | `RAILWAY_ENVIRONMENT` | `production`, ou ambiente associado ao token |
 | `PUBLIC_URL` | `https://entrelinhas-production-7e6e.up.railway.app` |
 
-O pipeline baixa a branch `main`, seleciona o SHA informado, publica com
-`railway up` e verifica `/health` e `/static/index.html`. O timeout é 30 minutos.
-Este job executa somente Deploy; a integração deve acioná-lo após Build e Testes
-aprovados, passando o mesmo SHA. Restrinja o acionamento manual conforme as
-permissões do grupo.
+O pipeline baixa o repositório, seleciona o SHA, instala dependências e executa
+as suítes. Quando `DEPLOY` está marcado, publica com `railway up --ci` e espera
+que `/static/release.json` informe o SHA testado, além de verificar `/health` e
+`/static/index.html`. Isso impede aprovar apenas a versão anterior ainda no ar.
+O marcador é um artefato temporário gerado pelo deploy, incluído na imagem e
+removido do workspace ao final. O timeout global é 30 minutos.
 
 No Railway, use o `Dockerfile` da raiz, uma réplica, healthcheck `/health`,
 volume montado em `/data`, `DATABASE_PATH=/data/jogo.db` e `RAILWAY_RUN_UID=0`.
