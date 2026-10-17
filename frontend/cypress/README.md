@@ -73,6 +73,11 @@ npm run test:e2e:open
 ```
 
 Se o servidor já estiver em execução, use `npm run e2e:run` ou `npm run e2e:open`.
+
+Para rodar tudo (mock + API real) contra o Flask, sem `http.server`, que não aceita POST:
+suba o Flask com um banco descartável e execute
+`CYPRESS_BASE_URL=http://127.0.0.1:<porta> npm run e2e:ci`. É o que o stage
+`Frontend/Cypress - Mateus` do `Jenkinsfile` faz; relatórios em `reports/`.
 Para testar em outra origem já servida:
 
 ```sh
