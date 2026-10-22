@@ -19,3 +19,15 @@ selecionar outro arquivo, inclusive o banco existente na raiz do repositório.
 
 `app.py` contém as rotas, `db.py` a persistência, `jogo.py` o estado da API e
 `src/` as classes de domínio. A suíte completa fica em `tests/`.
+
+### Palavras do tabuleiro
+
+Na inicialização, o backend cria a tabela SQLite `palavras` e cadastra as 200
+opções de `palavras.py`, sem duplicar registros em reinicializações. Cada nova
+partida sorteia seis palavras distintas do banco: três para A/B/C e três para
+1/2/3. A seleção fica salva em `estados_partida.palavras` e permanece igual
+até o encerramento. As coordenadas e as nove cartas continuam as mesmas.
+
+Bancos existentes são atualizados automaticamente; partidas anteriores mantêm
+as seis palavras originais. O arquivo utilizado segue `DATABASE_PATH` (padrão:
+`jogo.db`). Não é necessário recriar o banco ou apagar partidas.

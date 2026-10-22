@@ -3,6 +3,8 @@ import json
 import os
 from datetime import datetime
 
+from palavras import PALAVRAS_INICIAIS
+
 SCHEMA_PARTIDAS = """
 CREATE TABLE IF NOT EXISTS partidas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,6 +53,16 @@ def criar_tabelas(conn):
         conn.execute(SCHEMA_PARTIDAS)
         conn.execute(SCHEMA_JOGADAS)
         conn.execute(SCHEMA_ESTADOS)
+        conn.execute("CREATE TABLE IF NOT EXISTS palavras (id INTEGER PRIMARY KEY, palavra TEXT NOT NULL UNIQUE)")
+        conn.executemany(
+            "INSERT OR IGNORE INTO palavras (palavra) VALUES (?)",
+            [(palavra,) for palavra in PALAVRAS_INICIAIS],
+        )
+        # Bancos anteriores recebem as palavras originais, preservando partidas em andamento.
+        colunas = {row["name"] for row in conn.execute("PRAGMA table_info(estados_partida)")}
+        if "palavras" not in colunas:
+            conn.execute("ALTER TABLE estados_partida ADD COLUMN palavras TEXT NOT NULL "
+                         "DEFAULT '[\"mar\", \"casa\", \"música\", \"noite\", \"festa\", \"viagem\"]'")
 
 def criar_partida(conn, num_jogadores):
     data_inicio = datetime.now().isoformat()
@@ -82,10 +94,15 @@ def salvar_jogada(conn, partida_id, jogador, dica, coord_correta, coord_tentada,
 
 
 def criar_estado(conn, partida_id, cartas):
+    palavras = [row["palavra"] for row in conn.execute(
+        "SELECT palavra FROM palavras ORDER BY RANDOM() LIMIT 6"
+    )]
+    if len(palavras) != 6:
+        raise ValueError("O catálogo precisa de pelo menos seis palavras para iniciar a partida.")
     with conn:
         conn.execute(
-            "INSERT INTO estados_partida (partida_id, cartas) VALUES (?, ?)",
-            (partida_id, json.dumps(cartas)),
+            "INSERT INTO estados_partida (partida_id, cartas, palavras) VALUES (?, ?, ?)",
+            (partida_id, json.dumps(cartas), json.dumps(palavras, ensure_ascii=False)),
         )
 
 
@@ -97,6 +114,7 @@ def consultar_estado(conn, partida_id):
         return None
     estado = dict(row)
     estado["cartas"] = json.loads(estado["cartas"])
+    estado["palavras"] = json.loads(estado["palavras"])
     return estado
 
 
