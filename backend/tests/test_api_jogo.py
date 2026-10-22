@@ -176,3 +176,18 @@ def test_encerrar_sem_jogadas_e_rejeitar_partida_inexistente(cliente):
     assert resposta.get_json()["placar"] == {"acertos": 0, "erros": 0}
     assert resposta.get_json()["fase"] == "final"
     assert cliente.post("/partida/99999/encerrar").status_code == 404
+
+
+def test_palavras_sorteadas_permanecem_durante_toda_partida(cliente):
+    estado = iniciar(cliente)
+    tabuleiro = estado["tabuleiro"]
+    palavras = [e["palavra"] for eixo in ("linhas", "colunas") for e in tabuleiro[eixo]]
+    assert len(set(palavras)) == 6
+    rota = f"/partida/{estado['id']}"
+    for _ in range(9):
+        dica = cliente.post(f"{rota}/dica", json={"dica": "teste"}).get_json()
+        assert dica["tabuleiro"]["linhas"] == tabuleiro["linhas"]
+        assert dica["tabuleiro"]["colunas"] == tabuleiro["colunas"]
+        estado = cliente.post(f"{rota}/palpite", json={"palpite": estado["carta_secreta"]}).get_json()
+        assert estado["tabuleiro"]["linhas"] == tabuleiro["linhas"]
+        assert estado["tabuleiro"]["colunas"] == tabuleiro["colunas"]
