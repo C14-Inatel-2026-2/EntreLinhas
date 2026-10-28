@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 FROM dependencies AS backend-tests
 ENV DATABASE_PATH=/tmp/test-jogo.db COVERAGE_FILE=/tmp/.coverage
-COPY backend/app.py backend/db.py backend/jogo.py backend/pytest.ini ./
+COPY backend/app.py backend/db.py backend/jogo.py backend/palavras.py backend/pytest.ini ./
 COPY backend/src/ ./src/
 COPY backend/tests/ ./tests/
 COPY frontend/static/ /app/frontend/static/
@@ -30,7 +30,7 @@ RUN groupadd --gid 10001 app \
     && mkdir /data \
     && chown app:app /data
 
-COPY backend/app.py backend/db.py backend/jogo.py ./
+COPY backend/app.py backend/db.py backend/jogo.py backend/palavras.py ./
 COPY backend/src/ ./src/
 COPY frontend/static/ /app/frontend/static/
 COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/entrelinhas-entrypoint

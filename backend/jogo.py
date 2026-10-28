@@ -3,20 +3,11 @@
 from src.Baralho import Baralho
 
 
-LINHAS = (
-    {"id": "A", "palavra": "mar"},
-    {"id": "B", "palavra": "casa"},
-    {"id": "C", "palavra": "música"},
-)
-COLUNAS = (
-    {"id": "1", "palavra": "noite"},
-    {"id": "2", "palavra": "festa"},
-    {"id": "3", "palavra": "viagem"},
-)
-
+LINHAS = ("A", "B", "C")
+COLUNAS = ("1", "2", "3")
 
 def criar_cartas():
-    baralho = Baralho([linha["id"] for linha in LINHAS], [coluna["id"] for coluna in COLUNAS])
+    baralho = Baralho(LINHAS, COLUNAS)
     baralho.embaralhar()
     return baralho.cartas
 
@@ -37,11 +28,11 @@ def montar_estado(partida, progresso, jogadas, mensagem=None):
         "carta_secreta": cartas[indice] if fase == "dica" else None,
         "dica": progresso["dica"] if fase == "palpite" else None,
         "tabuleiro": {
-            "linhas": list(LINHAS),
-            "colunas": list(COLUNAS),
+            "linhas": [{"id": id_, "palavra": palavra} for id_, palavra in zip(LINHAS, progresso["palavras"][:3])],
+            "colunas": [{"id": id_, "palavra": palavra} for id_, palavra in zip(COLUNAS, progresso["palavras"][3:])],
             "celulas": [
                 {"coordenada": carta, "estado": "acerto" if carta in acertos else "vazia"}
-                for carta in [f"{linha['id']}{coluna['id']}" for linha in LINHAS for coluna in COLUNAS]
+                for carta in [f"{linha}{coluna}" for linha in LINHAS for coluna in COLUNAS]
             ],
         },
         "placar": placar,

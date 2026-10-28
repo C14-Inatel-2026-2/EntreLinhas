@@ -57,10 +57,11 @@ mesmo quando um teste falhar (por exemplo, no bloco `post/always` do Jenkins).
 Para jobs concorrentes, use um nome de projeto Compose exclusivo por build,
 com `-p entrelinhas-build-<numero>` em todos os comandos, e workspaces separados.
 
-No Jenkins, publique `reports/backend/junit.xml` com JUnit e os HTML
-`reports/backend/htmlcov/index.html` e `reports/cypress/index.html` com HTML
-Publisher. Arquive também `reports/backend/coverage.xml`,
-`reports/frontend/unit.txt` e `reports/frontend/lcov.info`. A cobertura JavaScript
+O pipeline nativo do Jenkins publica `reports/backend/junit.xml` com JUnit e
+arquiva `reports/backend/**` e `frontend/reports/**`, incluindo HTML e cobertura.
+O perfil Docker `tests` usa os caminhos da tabela acima; seu HTML Cypress fica
+em `reports/cypress/index.html`. O plugin HTML Publisher é opcional, caso se
+queira exibir os HTML diretamente na página do job. A cobertura JavaScript
 mede os módulos exercitados pelos testes unitários; Cypress gera relatório de
 cenários e screenshots, sem instrumentação de cobertura de navegador.
 
@@ -86,8 +87,12 @@ altera essa configuração.
 Os jobs de teste e seus relatórios ficam no Jenkins, sem serviços ou volumes
 de testes no Railway. Para atender à disciplina, desative o autodeploy por push
 e deixe o job Deploy do Jenkins publicar somente depois dos testes aprovados.
-A integração Jenkins/Railway ainda precisa ser configurada com as credenciais
-do projeto. Não versione tokens no repositório.
+O pipeline único do `Jenkinsfile` integra os testes e o deploy. O parâmetro
+`DEPLOY` desmarcado executa somente CI em builds manuais. O polling da `main`
+aciona testes e deploy automaticamente a cada revisão nova; a publicação exige a credencial
+`railway-project-token` e aprovação das duas suítes para o mesmo SHA.
+A verificação pública confere também o commit em `/static/release.json`.
+Não versione tokens no repositório.
 
 ## Decisões Docker
 
