@@ -5,7 +5,7 @@ from db import (
     conectar_bd, criar_tabelas, criar_partida, consultar_partida, salvar_jogada,
     criar_estado, consultar_estado, atualizar_estado, consultar_jogadas, finalizar_partida,
 )
-from jogo import criar_cartas, montar_estado
+from jogo import criar_cartas, montar_estado, jogador_da_rodada
 
 app = Flask(
     __name__,
@@ -150,7 +150,7 @@ def rota_palpite(partida_id):
 
         correta = progresso["cartas"][progresso["indice"]]
         acertou = palpite == correta
-        jogador = str(progresso["indice"] % partida["num_jogadores"] + 1)
+        jogador = str(jogador_da_rodada(partida, progresso))
         salvar_jogada(conn, partida_id, jogador, progresso["dica"], correta, palpite, progresso["indice"] + 1)
         novo_indice = progresso["indice"] + 1
         fase = "final" if novo_indice == len(progresso["cartas"]) else "dica"

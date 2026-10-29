@@ -7,6 +7,8 @@ function iniciarPartida(nomes = ["Ana", "Bia"]) {
   nomes.forEach((nome, indice) => cy.get(`#nome-jogador-${indice + 1}`).type(nome));
   cy.get("#comecar-jogo").click();
   cy.get("#tela-jogo").should("be.visible");
+  cy.get("#inicio-turno").should("be.visible");
+  cy.get("#continuar-turno").click();
 }
 
 describe("Interface integrada à API real", () => {
@@ -15,7 +17,8 @@ describe("Interface integrada à API real", () => {
     cy.get("#tabuleiro [data-coordenada]").should("have.length", 9);
     cy.get("#acertos").should("have.text", "0");
     cy.get("#erros").should("have.text", "0");
-    cy.get("#turno").should("contain.text", "Ana dá a dica");
+    cy.get("#nome-turno").invoke("text").should("be.oneOf", ["Ana", "Bia"]);
+      cy.get("#acao-turno").should("contain.text", "Sua vez de dar a dica");
     cy.get("#erro").should("not.be.visible");
   });
 
@@ -28,7 +31,8 @@ describe("Interface integrada à API real", () => {
       cy.get("#dica").type("ponte");
       cy.get('#form-dica button[type="submit"]').click();
       cy.get("#form-palpite").should("be.visible");
-      cy.get("#turno").should("contain.text", "Bia, é sua vez de dar o palpite!");
+      cy.get("#nome-turno").invoke("text").should("be.oneOf", ["Ana", "Bia"]);
+      cy.get("#acao-turno").should("contain.text", "Sua vez de dar o palpite");
       cy.get(`button[data-coordenada="${coordenada}"]`).click();
       cy.get("#confirmar-palpite").click();
       cy.get("#titulo-palpite").should("have.text", "Acertou!");
@@ -37,25 +41,27 @@ describe("Interface integrada à API real", () => {
       cy.get("#acertos").should("have.text", "1");
       cy.get("#erros").should("have.text", "0");
       cy.get(`[data-coordenada="${coordenada}"]`).should("have.class", "celula-acerto");
-      cy.get("#turno").should("contain.text", "Bia dá a dica");
+      cy.get("#nome-turno").invoke("text").should("be.oneOf", ["Ana", "Bia"]);
+      cy.get("#acao-turno").should("contain.text", "Sua vez de dar a dica");
       cy.get("#atualizar-placar").click();
       cy.get("#acertos").should("have.text", "1");
       cy.get("#erro").should("not.be.visible");
     });
   });
 
-  it("alterna os nomes de três jogadores e mostra o último acerto antes do resultado final", () => {
+  it("sorteia quem dá a dica para o time de três jogadores e mostra o último acerto antes do resultado final", () => {
     const nomes = ["Ana", "Bia", "Caio"];
     iniciarPartida(nomes);
     for (let rodada = 0; rodada < 9; rodada += 1) {
-      cy.get("#turno").should("contain.text", `${nomes[rodada % 3]} dá a dica`);
+      cy.get("#nome-turno").invoke("text").should("be.oneOf", nomes);
       cy.get("#revelar-carta").click();
       cy.get("#carta-secreta").invoke("text").then((texto) => {
         const coordenada = texto.match(/[A-C][1-3]/)[0];
         cy.get("#dica").type("ponte");
         cy.get('#form-dica button[type="submit"]').click();
         cy.get("#form-palpite").should("be.visible");
-        cy.get("#turno").should("contain.text", `${nomes[(rodada + 1) % 3]}, é sua vez de dar o palpite!`);
+        cy.get("#nome-turno").should("have.text", "Vez do time");
+        cy.get("#jogador-palpite").should("contain.text", "um único palpite para o time");
         cy.get(`button[data-coordenada="${coordenada}"]`).click();
         cy.get("#confirmar-palpite").click();
         cy.get("#resultado-palpite").should("be.visible");
@@ -84,7 +90,8 @@ describe("Interface integrada à API real", () => {
       cy.get("#titulo-palpite").should("have.text", "Errou!");
       cy.get("#continuar-palpite").click();
       cy.get("#erros").should("have.text", "1");
-      cy.get("#turno").should("contain.text", "Bia dá a dica");
+      cy.get("#nome-turno").invoke("text").should("be.oneOf", ["Ana", "Bia"]);
+      cy.get("#acao-turno").should("contain.text", "Sua vez de dar a dica");
       cy.window().then((janela) => {
         const original = janela.fetch.bind(janela);
         let rotaEncerrar;
