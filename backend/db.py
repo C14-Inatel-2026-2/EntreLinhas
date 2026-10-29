@@ -1,6 +1,7 @@
 import sqlite3
 import json
 import os
+import random
 from datetime import datetime
 
 from palavras import PALAVRAS_INICIAIS
@@ -60,6 +61,8 @@ def criar_tabelas(conn):
         )
         # Bancos anteriores recebem as palavras originais, preservando partidas em andamento.
         colunas = {row["name"] for row in conn.execute("PRAGMA table_info(estados_partida)")}
+        if "ordem_jogadores" not in colunas:
+            conn.execute("ALTER TABLE estados_partida ADD COLUMN ordem_jogadores TEXT")
         if "palavras" not in colunas:
             conn.execute("ALTER TABLE estados_partida ADD COLUMN palavras TEXT NOT NULL "
                          "DEFAULT '[\"mar\", \"casa\", \"música\", \"noite\", \"festa\", \"viagem\"]'")
@@ -99,10 +102,13 @@ def criar_estado(conn, partida_id, cartas):
     )]
     if len(palavras) != 6:
         raise ValueError("O catálogo precisa de pelo menos seis palavras para iniciar a partida.")
+    quantidade = consultar_partida(conn, partida_id)["num_jogadores"]
+    ciclo = random.sample(range(1, quantidade + 1), quantidade)
+    ordem = [ciclo[indice % quantidade] for indice in range(len(cartas))]
     with conn:
         conn.execute(
-            "INSERT INTO estados_partida (partida_id, cartas, palavras) VALUES (?, ?, ?)",
-            (partida_id, json.dumps(cartas), json.dumps(palavras, ensure_ascii=False)),
+            "INSERT INTO estados_partida (partida_id, cartas, palavras, ordem_jogadores) VALUES (?, ?, ?, ?)",
+            (partida_id, json.dumps(cartas), json.dumps(palavras, ensure_ascii=False), json.dumps(ordem)),
         )
 
 
@@ -113,6 +119,7 @@ def consultar_estado(conn, partida_id):
     if row is None:
         return None
     estado = dict(row)
+    estado["ordem_jogadores"] = json.loads(estado["ordem_jogadores"]) if estado["ordem_jogadores"] else None
     estado["cartas"] = json.loads(estado["cartas"])
     estado["palavras"] = json.loads(estado["palavras"])
     return estado

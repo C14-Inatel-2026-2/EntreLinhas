@@ -53,7 +53,8 @@ describe("Interface web — navegação e interação com Cypress", () => {
     it(`percorre início, nomes, dica, seleção de palpite e resultado no ${tela}`, function () {
       cy.viewport(largura, altura);
       iniciar(this.estado);
-      cy.get("#turno").should("contain.text", "Ana dá a dica");
+      cy.get("#nome-turno").should("have.text", "Ana");
+      cy.get("#acao-turno").should("contain.text", "Sua vez de dar a dica");
       cy.get("#tabuleiro [data-coordenada]").should("have.length", 9);
       cy.get("#tabuleiro button").should("be.disabled");
       cy.get("#carta-secreta").should("not.be.visible");
@@ -63,7 +64,8 @@ describe("Interface web — navegação e interação com Cypress", () => {
       cy.get("#carta-secreta").should("not.be.visible").and("have.text", "");
 
       enviarDica(this.estado);
-      cy.get("#turno").should("contain.text", "Henrique, é sua vez de dar o palpite!");
+      cy.get("#nome-turno").should("have.text", "Henrique");
+      cy.get("#acao-turno").should("contain.text", "Sua vez de dar o palpite");
       cy.get("#jogador-palpite").should("contain.text", "Henrique confirma o palpite");
       cy.get("#confirmar-palpite").should("be.disabled");
       cy.get('[data-coordenada="A1"]').click();
@@ -97,10 +99,12 @@ describe("Interface web — navegação e interação com Cypress", () => {
       cy.get("#erros").should("have.text", "0");
       cy.get('[data-coordenada="A3"]').should("have.class", "celula-acerto");
       cy.get('button[data-coordenada="A3"]').should("not.exist");
-      cy.get("#turno").should("contain.text", "Henrique dá a dica");
+      cy.get("#nome-turno").should("have.text", "Henrique");
+      cy.get("#acao-turno").should("contain.text", "Sua vez de dar a dica");
 
       enviarDica(segundaRodada, "aniversário");
-      cy.get("#turno").should("contain.text", "Ana, é sua vez de dar o palpite!");
+      cy.get("#nome-turno").should("have.text", "Ana");
+      cy.get("#acao-turno").should("contain.text", "Sua vez de dar o palpite");
       const resultado = {
         ...segundaRodada,
         fase: "final",

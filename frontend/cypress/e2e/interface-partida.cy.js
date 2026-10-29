@@ -19,6 +19,33 @@ describe("Interface da partida: validação, erros e resultado", () => {
     cy.get("#continuar-turno").click();
   }
 
+  it("atribui o palpite ao time em partidas com três jogadores", () => {
+    cy.fixture("partida").then((estado) => {
+      cy.intercept("POST", "/partida", { body: { ...estado, num_jogadores: 3, jogador_dica: 3 } });
+      cy.intercept("POST", `/partida/${estado.id}/dica`, {
+        body: { ...estado, num_jogadores: 3, jogador_dica: 3, fase: "palpite", dica: "ponte", carta_secreta: null }
+      });
+      cy.visit("/");
+      cy.get("#jogadores").clear().type("3");
+      cy.get('#form-iniciar button[type="submit"]').click();
+      ["Ana", "Bia", "Caio"].forEach((nome, i) => cy.get(`#nome-jogador-${i + 1}`).type(nome));
+      cy.get("#comecar-jogo").click();
+      cy.get("#nome-inicio-turno").should("have.text", "Caio");
+      cy.get("#continuar-turno").click();
+      cy.get("#nome-turno").should("have.text", "Caio");
+      cy.get("#jogadores-turno li").should("have.length", 3);
+      cy.get(".jogador-turno-ativo").should("have.length", 1).and("contain.text", "Caio");
+      cy.get(".jogador-turno-aguardando").should("have.length", 2);
+      cy.get("#dica").type("ponte");
+      cy.get('#form-dica button[type="submit"]').click();
+      cy.get("#nome-turno").should("have.text", "Vez do time");
+      cy.get(".jogador-turno-ativo").should("have.length", 2);
+      cy.get(".jogador-turno-aguardando").should("have.length", 1).and("contain.text", "Caio");
+      cy.get("#acao-turno").should("contain.text", "Caio deu a dica e não participa do palpite");
+      cy.get("#jogador-palpite").should("contain.text", "um único palpite para o time");
+    });
+  });
+
   it("sem mock: abre os campos de nomes conforme a quantidade de jogadores", () => {
     cy.visit("/");
     cy.get("#jogadores").clear().type("3");

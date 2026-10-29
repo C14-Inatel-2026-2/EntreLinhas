@@ -12,6 +12,13 @@ def criar_cartas():
     return baralho.cartas
 
 
+def jogador_da_rodada(partida, progresso):
+    ordem = progresso.get("ordem_jogadores")
+    if ordem:
+        return ordem[min(progresso["indice"], len(ordem) - 1)]
+    return progresso["indice"] % partida["num_jogadores"] + 1
+
+
 def montar_estado(partida, progresso, jogadas, mensagem=None):
     acertos = {jogada["coordenada_correta"] for jogada in jogadas if jogada["acertou"]}
     placar = {"acertos": len(acertos), "erros": len(jogadas) - len(acertos)}
@@ -24,7 +31,7 @@ def montar_estado(partida, progresso, jogadas, mensagem=None):
         "partida_id": partida["id"],
         "num_jogadores": partida["num_jogadores"],
         "fase": fase,
-        "jogador_dica": indice % partida["num_jogadores"] + 1,
+        "jogador_dica": jogador_da_rodada(partida, progresso),
         "carta_secreta": cartas[indice] if fase == "dica" else None,
         "dica": progresso["dica"] if fase == "palpite" else None,
         "tabuleiro": {

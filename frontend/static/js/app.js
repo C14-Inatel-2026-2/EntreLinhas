@@ -176,12 +176,28 @@ function renderizarPartida(dados) {
   elemento("form-palpite").hidden = dados.fase !== "palpite";
   const jogadorDica = nomesJogadores[dados.jogador_dica - 1] || `Jogador ${dados.jogador_dica}`;
   const indicePalpite = dados.jogador_dica % nomesJogadores.length;
-  const jogadorPalpite = nomesJogadores[indicePalpite] || "O time";
+  const emDupla = nomesJogadores.length === 2;
+  const jogadorPalpite = emDupla ? nomesJogadores[indicePalpite] : "Vez do time";
+  const jogadores = nomesJogadores.map((nome, indice) => {
+    const dandoDica = indice + 1 === dados.jogador_dica;
+    const ativo = dados.fase === "dica" ? dandoDica : dados.fase === "palpite" && !dandoDica;
+    const item = document.createElement("li");
+    item.className = `jogador-turno ${ativo ? "jogador-turno-ativo" : "jogador-turno-aguardando"}`;
+    const identificacao = document.createElement("strong");
+    identificacao.textContent = nome;
+    const situacao = document.createElement("span");
+    situacao.textContent = ativo ? (dados.fase === "dica" ? "Dando a dica" : "Adivinhando") : "Aguardando";
+    item.append(identificacao, situacao);
+    return item;
+  });
+  elemento("jogadores-turno").replaceChildren(...jogadores);
   elemento("nome-turno").textContent = dados.fase === "palpite" ? jogadorPalpite : jogadorDica;
   elemento("acao-turno").textContent = dados.fase === "palpite"
-    ? ", é sua vez de dar o palpite! O time pode ajudar."
-    : " dá a dica · O time adivinha junto.";
-  elemento("jogador-palpite").textContent = `${jogadorPalpite} confirma o palpite com a ajuda do time.`;
+    ? (emDupla ? "Sua vez de dar o palpite." : `Juntem as ideias! ${jogadorDica} deu a dica e não participa do palpite.`)
+    : (emDupla ? "Sua vez de dar a dica. A outra pessoa adivinha." : "Sua vez de dar a dica. O restante do time adivinha junto.");
+  elemento("jogador-palpite").textContent = emDupla
+    ? `${jogadorPalpite} confirma o palpite.`
+    : "Conversem e confirmem um único palpite para o time.";
   elemento("mensagem-rodada").textContent = dados.mensagem || "";
   elemento("dica-atual").textContent = dados.dica || "";
   elemento("resumo-final").textContent = dados.resumo || "Obrigado por jogar em equipe!";

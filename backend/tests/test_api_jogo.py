@@ -54,7 +54,7 @@ def test_inicio_entrega_estado_completo_para_interface(cliente):
     assert estado["partida_id"] == estado["id"]
     assert estado["num_jogadores"] == 2
     assert estado["fase"] == "dica"
-    assert estado["jogador_dica"] == 1
+    assert estado["jogador_dica"] in (1, 2)
     assert estado["carta_secreta"] in {celula["coordenada"] for celula in estado["tabuleiro"]["celulas"]}
     assert estado["placar"] == {"acertos": 0, "erros": 0}
     assert len(estado["tabuleiro"]["celulas"]) == 9
@@ -75,7 +75,7 @@ def test_dica_palpite_e_placar_sao_persistidos(cliente):
     assert resposta_palpite.status_code == 200
     estado = resposta_palpite.get_json()
     assert estado["fase"] == "dica"
-    assert estado["jogador_dica"] == 2
+    assert estado["jogador_dica"] == 3 - inicio["jogador_dica"]
     assert estado["placar"] == {"acertos": 1, "erros": 0}
     celula = next(c for c in estado["tabuleiro"]["celulas"] if c["coordenada"] == inicio["carta_secreta"])
     assert celula["estado"] == "acerto"
@@ -191,3 +191,38 @@ def test_palavras_sorteadas_permanecem_durante_toda_partida(cliente):
         estado = cliente.post(f"{rota}/palpite", json={"palpite": estado["carta_secreta"]}).get_json()
         assert estado["tabuleiro"]["linhas"] == tabuleiro["linhas"]
         assert estado["tabuleiro"]["colunas"] == tabuleiro["colunas"]
+
+
+@pytest.mark.parametrize("quantidade", [2, 3, 4, 5, 6])
+def test_ordem_sorteada_repete_ciclo_e_coordenadas_nao_repetem(cliente, monkeypatch, quantidade):
+    import db
+    ciclo = list(range(quantidade, 0, -1))
+    sorteios = []
+    def sortear(populacao, tamanho):
+        sorteios.append((list(populacao), tamanho))
+        return ciclo.copy()
+    monkeypatch.setattr(db.random, "sample", sortear)
+    estado = cliente.post("/partida", json={"num_jogadores": quantidade}).get_json()
+    rota = f"/partida/{estado['id']}"
+    cartas = []
+    for rodada in range(9):
+        jogador = ciclo[rodada % quantidade]
+        assert estado["jogador_dica"] == jogador
+        carta = estado["carta_secreta"]
+        assert carta not in cartas
+        cartas.append(carta)
+        dica = cliente.post(f"{rota}/dica", json={"dica": "teste"}).get_json()
+        assert dica["jogador_dica"] == jogador
+        # Mistura acertos e erros: a coordenada secreta nunca volta ao baralho.
+        palpite = carta if rodada % 2 == 0 else next(
+            c["coordenada"] for c in estado["tabuleiro"]["celulas"]
+            if c["coordenada"] != carta and c["estado"] == "vazia"
+        )
+        estado = cliente.post(f"{rota}/palpite", json={"palpite": palpite}).get_json()
+    assert estado["fase"] == "final"
+    assert set(cartas) == {f"{linha}{coluna}" for linha in "ABC" for coluna in "123"}
+    assert sorteios == [(list(range(1, quantidade + 1)), quantidade)]
+    conn = modulo_api.conectar_bd()
+    registros = db.consultar_jogadas(conn, estado["id"])
+    conn.close()
+    assert [int(j["jogador"]) for j in registros] == [ciclo[i % quantidade] for i in range(9)]
