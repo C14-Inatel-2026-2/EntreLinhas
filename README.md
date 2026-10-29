@@ -338,6 +338,22 @@ O envio é acompanhado pelas tarefas
 [#51 — Fernando](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/51),
 com prazo em **31/10/2026**.
 
+### US02 — Registrar um palpite (Henrique Rodrigues)
+
+Como jogador, quero registrar meu palpite para descobrir se acertei e acompanhar minha pontuação.
+
+- **Issue vinculada:** [#52](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/52)
+- **Status:** Concluído
+- **Evidências:** PRs [#3](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/3), [#18](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/18) e [#44](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/44)
+
+#### Requisitos Funcionais (API e Placar)
+- **RF-API-01 (Registro e Validação):** A API Flask disponibiliza o endpoint `POST /partida/<id>/palpite` para receber, validar a opção selecionada e registrar a jogada.
+- **RF-API-02 (Feedback e Pontuação):** O retorno da requisição informa se o palpite foi correto ou incorreto e atualiza o placar e os turnos da partida de acordo com as regras do jogo.
+
+#### Requisitos Não-Funcionais (Persistência)
+- **RNF-PER-01 (Persistência em SQLite):** As jogadas, dados da partida e o histórico do placar são persistidos de forma síncrona no banco de dados SQLite (`jogo.db`).
+- **RNF-PER-02 (Tratamento de Erros e Integridade):** A API trata requisições inválidas, fora de turno ou com parâmetros incorretos retornando status HTTP 4xx (como 400 ou 409) sem comprometer a integridade do banco de dados.
+
 ## Metodologia de desenvolvimento
 
 O grupo utiliza **Kanban no GitHub Projects** para visualizar o andamento,
