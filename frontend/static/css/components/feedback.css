@@ -89,3 +89,14 @@
 .popup-resultado button {
   width: 100%;
 }
+
+.popup-turno h2 {
+  font-size: 26px;
+}
+
+.popup-turno .nome-inicio-turno {
+  margin: 16px 0;
+  font-size: clamp(32px, 6vw, 44px);
+  font-weight: 800;
+  line-height: 1.2;
+}

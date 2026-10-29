@@ -13,6 +13,10 @@ describe("Interface da partida: validação, erros e resultado", () => {
     cy.get("#comecar-jogo").click();
     cy.wait("@iniciar").its("request.body").should("deep.equal", { num_jogadores: 2 });
     cy.get("#tela-jogo").should("be.visible");
+    cy.get("#inicio-turno").should("be.visible");
+    cy.get("#nome-inicio-turno").should("have.text", estado.jogador_dica === 2 ? "Henrique" : "Ana");
+    cy.get("#continuar-turno").should("be.focused");
+    cy.get("#continuar-turno").click();
   }
 
   it("sem mock: abre os campos de nomes conforme a quantidade de jogadores", () => {

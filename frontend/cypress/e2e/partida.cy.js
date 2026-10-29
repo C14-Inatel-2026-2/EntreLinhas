@@ -25,6 +25,8 @@ function iniciar(estado) {
   cy.get("#comecar-jogo").click();
   cy.wait("@iniciar");
   cy.get("#tela-jogo").should("be.visible");
+  cy.get("#inicio-turno").should("be.visible");
+  cy.get("#continuar-turno").click();
 }
 
 function enviarDica(estado, dica = "cruzeiro") {
@@ -155,6 +157,8 @@ describe("Interface web — navegação e interação com Cypress", () => {
     cy.get("#comecar-jogo").should("have.attr", "aria-disabled", "false").click();
     cy.wait("@iniciar");
     cy.get("#tela-jogo").should("be.visible");
+    cy.get("#inicio-turno").should("be.visible");
+    cy.get("#continuar-turno").click();
   });
 
   it("bloqueia dica vazia ou com espaços e permite desmarcar o palpite", function () {

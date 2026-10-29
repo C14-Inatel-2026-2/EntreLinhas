@@ -7,6 +7,8 @@ function iniciarPartida(nomes = ["Ana", "Bia"]) {
   nomes.forEach((nome, indice) => cy.get(`#nome-jogador-${indice + 1}`).type(nome));
   cy.get("#comecar-jogo").click();
   cy.get("#tela-jogo").should("be.visible");
+  cy.get("#inicio-turno").should("be.visible");
+  cy.get("#continuar-turno").click();
 }
 
 describe("Interface integrada à API real", () => {

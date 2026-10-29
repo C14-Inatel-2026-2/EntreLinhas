@@ -58,6 +58,30 @@
   overflow-wrap: anywhere;
 }
 
+.topo-jogo > div:first-child {
+  min-width: 0;
+}
+
+.turno-destaque {
+  display: grid;
+  gap: 4px;
+  padding: 14px 20px;
+  border: 2px solid var(--azul);
+  border-radius: 14px;
+  background: #ffebbf;
+  color: var(--azul);
+}
+
+.turno-destaque strong {
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.turno-destaque span {
+  font-size: 16px;
+}
+
 .botao-encerrar {
   background: var(--branco);
   color: var(--azul);
