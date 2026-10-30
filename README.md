@@ -362,29 +362,86 @@ Como jogador, quero registrar meu palpite para descobrir se acertei e acompanhar
 - **RNF-PER-01 (Persistência em SQLite):** As jogadas, dados da partida e o histórico do placar são persistidos de forma síncrona no banco de dados SQLite (`jogo.db`).
 - **RNF-PER-02 (Tratamento de erros):** A API rejeita entradas inválidas com HTTP 400 e operações incompatíveis com a fase com HTTP 409. Não há autenticação que valide a identidade do jogador; atomicidade e recuperação completa continuam pendentes na #9.
 
-### US04 e US05 — Resultado e encerramento (Fernando)
+### US04 — Acompanhar o resultado (Fernando)
 
 Como jogador, quero acompanhar os participantes, os acertos, os erros e o resultado
-final para saber o desempenho cooperativo da partida ([US04, #60](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/60)).
-Como jogador, quero encerrar antecipadamente para consultar o placar acumulado
-([US05, #61](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/61)).
-As issues detalham os critérios de aceite, a prioridade alta e as evidências das
-PRs #41 e #56. O placar é do time; os nomes permanecem na sessão da interface.
+final para saber o desempenho cooperativo da partida.
 
-| Requisito funcional | Comportamento verificável |
+- **Issue vinculada:** [#60](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/60)
+- **Prioridade:** Alta.
+- **Status:** Em revisão no Projects em 30/10/2026.
+
+#### Requisitos funcionais
+
+| Requisito | Comportamento verificável |
 | --- | --- |
 | RF-RES-01 | Exibir nomes e participação no turno; atualizar acertos e erros após cada palpite válido |
 | RF-RES-02 | Consultar os totais em `GET /partida/<id>/placar` e mostrar o resultado ao finalizar |
+
+#### Critérios de aceite
+
+- Identificar os participantes pelos nomes informados e destacar sua participação no turno.
+- Iniciar o placar com zero acertos e erros; somar um acerto ou um erro após cada palpite válido.
+- Retornar os totais registrados ao consultar o placar pela API.
+- Exibir os totais finais após as nove cartas ou o encerramento antecipado.
+
+#### Evidências e limitações
+
+As PRs [#41](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/41) e
+[#56](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/56) registram interface,
+feedback, nomes e turnos. Em `backend/tests/test_api_jogo.py`, os testes
+`test_dica_palpite_e_placar_sao_persistidos`,
+`test_palpite_incorreto_descarta_carta_e_soma_erro` e
+`test_partida_termina_apos_todas_as_cartas` verificam pontuação e término.
+Os cenários de `frontend/cypress/e2e/interface-partida.cy.js` e
+`frontend/cypress/real-api/fluxo.cy.js` cobrem placar e resultado na interface.
+
+Validação em 30/10/2026, base `ad18e58`: 21 testes de API aprovados com
+`.venv/bin/python -m pytest backend/tests/test_api_jogo.py -q`.
+Os cenários Cypress foram inspecionados, sem nova execução nesta atualização.
+O placar é coletivo, sem ranking individual; os nomes ficam na sessão da interface.
+Não há retomada completa após recarregar a página (#9).
+
+### US05 — Encerrar uma partida antecipadamente (Fernando)
+
+Como jogador, quero encerrar uma partida antecipadamente para finalizar o jogo e
+consultar o placar acumulado até aquele momento.
+
+- **Issue vinculada:** [#61](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/61)
+- **Prioridade:** Alta.
+- **Status:** Em revisão no Projects em 30/10/2026.
+
+#### Requisitos funcionais
+
+| Requisito | Comportamento verificável |
+| --- | --- |
 | RF-ENC-01 | Permitir encerramento nas fases de dica e palpite, preservando tabuleiro e placar |
 | RF-ENC-02 | Registrar término e pontuação; bloquear novas dicas e palpites com HTTP 409 |
 | RF-ENC-03 | Em erro HTTP de encerramento, informar a falha e permitir nova tentativa na interface |
 
-Validação documental em 30/10/2026, base `ad18e58`: 21 testes aprovados com
-`.venv/bin/python -m pytest backend/tests/test_api_jogo.py -q`, incluindo placar,
-nove rodadas, encerramento nas duas fases e repetição idempotente. Os testes
-Cypress existentes em `partida.cy.js`, `interface-partida.cy.js` e
-`real-api/fluxo.cy.js` cobrem interface, falha HTTP e integração; não foram
-executados novamente nesta atualização. Falha HTTP não comprova rollback no banco.
+#### Critérios de aceite
+
+- Permitir encerrar nas fases de dica e palpite, inclusive antes da primeira jogada.
+- Retornar fase final com HTTP 200, conservando tabuleiro e placar e ocultando carta e dica.
+- Persistir data de término e pontuação final; rejeitar novas dicas e palpites com HTTP 409.
+- Manter resultado e data ao repetir o encerramento; retornar HTTP 404 para partida inexistente.
+- Mostrar o resultado após sucesso; em falha HTTP, manter a tela da partida e permitir tentar novamente.
+
+#### Evidências e limitações
+
+A PR [#41](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/41) registra o
+encerramento na API e na interface. Em `backend/tests/test_api_jogo.py`, os testes
+`test_encerramento_antecipado_persiste_e_bloqueia_novas_jogadas` e
+`test_encerrar_sem_jogadas_e_rejeitar_partida_inexistente` verificam as duas fases,
+persistência, repetição e erros. Os cenários de
+`frontend/cypress/e2e/partida.cy.js` cobrem encerramento e falha HTTP seguida de
+nova tentativa; `frontend/cypress/real-api/fluxo.cy.js` verifica o placar persistido.
+
+Validação em 30/10/2026, base `ad18e58`: 21 testes de API aprovados com
+`.venv/bin/python -m pytest backend/tests/test_api_jogo.py -q`.
+Os cenários Cypress foram inspecionados, sem nova execução nesta atualização.
+O cenário de falha HTTP da interface usa resposta simulada. Falha de resposta
+não comprova rollback no servidor; atomicidade e recuperação permanecem na #9.
 
 ### Requisitos de execução e CI/CD (Fernando)
 
