@@ -10,6 +10,7 @@ Jogo de cartas cooperativo de dedução para navegador, baseado no jogo físico 
 - [Arquitetura e API](#arquitetura-e-api)
 - [Docker](#docker) e [Jenkins/Railway](#deploy-jenkins--railway)
 - [Funcionalidades](#funcionalidades) e [testes](#testes)
+- [Requisitos funcionais e não funcionais](#requisitos-funcionais-e-não-funcionais)
 - [Histórias de usuário](#histórias-de-usuário)
 - [Metodologia de desenvolvimento](#metodologia-de-desenvolvimento)
 - [Dinâmica de desenvolvimento e refatorações](#dinâmica-de-desenvolvimento-e-refatorações)
@@ -273,6 +274,29 @@ que dependam do ID de um serviço Railway.
 - [x] Pontuação final
 - [x] Persistência de partidas em SQLite
 
+## Requisitos funcionais e não funcionais
+
+### Regras, turnos e dicas
+
+| ID | Requisito | Evidência |
+| --- | --- | --- |
+| RF-REG-01 | A partida aceita de 2 a 6 jogadores; outros valores são recusados com 400 | `test_inicio_rejeita_quantidade_invalida` |
+| RF-REG-02 | A grade 3 × 3 usa seis palavras distintas do catálogo, fixas durante a partida | `test_palavras_sorteadas_permanecem_durante_toda_partida` |
+| RF-REG-03 | As nove cartas (A1 a C3) são embaralhadas e cada uma é jogada uma única vez | `test_ordem_sorteada_repete_ciclo_e_coordenadas_nao_repetem` |
+| RF-REG-04 | A partida termina após a nona rodada ou por encerramento antecipado, registrando a pontuação final | `test_partida_termina_apos_todas_as_cartas`, `test_encerramento_antecipado_persiste_e_bloqueia_novas_jogadas` |
+| RF-TUR-01 | A ordem de quem dá a dica é sorteada no início e se repete em ciclo | `test_ordem_sorteada_repete_ciclo_e_coordenadas_nao_repetem` |
+| RF-TUR-02 | Cada rodada segue as fases dica → palpite; ações fora da fase são recusadas com 409 | `test_api_rejeita_dica_invalida_e_palpite_fora_de_fase` |
+| RF-TUR-03 | A interface indica quem dá a dica e quem adivinha; com três ou mais jogadores, quem deu a dica não participa do palpite | Cypress `interface-partida.cy.js` |
+| RF-DIC-01 | Na fase de dica, a API envia a carta secreta ao jogador da vez; na fase de palpite, não a envia | `test_dica_palpite_e_placar_sao_persistidos` |
+| RF-DIC-02 | A dica deve ter uma única palavra, sem espaços, não vazia e com até 60 caracteres; caso contrário, é recusada com 400 | `test_api_rejeita_dica_invalida_e_palpite_fora_de_fase`; Cypress `partida.cy.js` |
+| RF-DIC-03 | Uma dica válida muda a partida para a fase de palpite e é exibida aos demais | `test_dica_palpite_e_placar_sao_persistidos` |
+| RF-DIC-04 | A dica é gravada com a jogada (jogador, coordenada correta e tentada) | Implementado em `backend/app.py`; sem teste automatizado do campo `dica` |
+
+Limitações: não há autenticação, então a identificação do jogador da vez ocorre
+apenas na interface. A regra de palavra única considera somente espaços, de modo
+que palavras com hífen são aceitas. A API recusa dicas vazias ou acima de 60
+caracteres, mas os testes de API cobrem apenas o caso de duas palavras.
+
 ## Testes
 
 Para executar os testes do navegador e gerar o relatório Mochawesome, com Node.js
@@ -337,6 +361,20 @@ O envio é acompanhado pelas tarefas
 [#50 — Mateus](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/50) e
 [#51 — Fernando](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/51),
 com prazo em **31/10/2026**.
+
+### US01 — Enviar uma dica (Caio Rodrigues)
+
+Como jogador da vez, quero enviar uma dica de uma única palavra sobre a minha
+carta secreta, para que os outros jogadores consigam adivinhar a coordenada
+correta no tabuleiro.
+
+- **Issue:** [US01 — #59](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/59)
+- **Prioridade:** Alta
+- **Status:** Concluído
+- **Evidências:** [PR #20](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/20)
+  e [PR #56](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/56); testes em
+  `backend/tests/test_api_jogo.py` e `frontend/cypress/e2e/`
+- **Requisitos:** [regras, turnos e dicas](#regras-turnos-e-dicas)
 
 ## Metodologia de desenvolvimento
 
