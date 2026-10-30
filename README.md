@@ -329,7 +329,7 @@ Situação conferida em **30/10/2026**; o status atualizado deve ser consultado 
 | --- | --- | --- | --- |
 | US01 — Enviar uma dica | Caio | [#59](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/59) | A fazer no quadro; critérios e evidências registrados |
 | US02 — Registrar um palpite | Henrique | [#57](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/57) | Em revisão |
-| US03 — Iniciar uma partida | Mateus | Aguardando criação pelo autor; acompanhamento na [#50](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/50) | Pendente |
+| US03 — Iniciar uma partida | Mateus | [#63](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/63) | Em revisão |
 | US04 — Acompanhar o resultado | Fernando | [#60](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/60) | Em revisão |
 | US05 — Encerrar uma partida antecipadamente | Fernando | [#61](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/61) | Em revisão |
 
@@ -361,6 +361,34 @@ Como jogador, quero registrar meu palpite para descobrir se acertei e acompanhar
 #### Requisitos Não-Funcionais (Persistência)
 - **RNF-PER-01 (Persistência em SQLite):** As jogadas, dados da partida e o histórico do placar são persistidos de forma síncrona no banco de dados SQLite (`jogo.db`).
 - **RNF-PER-02 (Tratamento de erros):** A API rejeita entradas inválidas com HTTP 400 e operações incompatíveis com a fase com HTTP 409. Não há autenticação que valide a identidade do jogador; atomicidade e recuperação completa continuam pendentes na #9.
+
+### US03 — Iniciar uma partida (Mateus Mendonça)
+
+Como jogador, quero iniciar uma partida com meus amigos informando o número de jogadores e os nomes para configurar o tabuleiro e distribuir as cartas iniciais.
+
+- **Issue vinculada:** [#63](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/63)
+- **Prioridade:** Alta.
+- **Status:** Em desenvolvimento/conclusão.
+
+#### Requisitos funcionais
+
+| Requisito | Comportamento verificável |
+| --- | --- |
+| RF-INI-01 | Configurar de 2 a 6 jogadores e exigir o preenchimento dos nomes na interface inicial |
+| RF-INI-02 | Validar o envio em `POST /partida`, gerando o tabuleiro de 3x3 e distribuindo as cartas iniciais |
+
+#### Critérios de aceite
+
+- A interface inicial permite configurar e aceitar de 2 a 6 jogadores.
+- É obrigatório preencher os nomes dos participantes para avançar; caso contrário, a interface bloqueia e exibe um erro.
+- Ao enviar a requisição de início (`POST /partida`), a API valida o número de jogadores, inicializa o estado e retorna a estrutura inicial correta.
+- O tabuleiro com os tópicos nas bordas é gerado e exibido corretamente assim que a partida é iniciada.
+- As cartas iniciais são distribuídas automaticamente e o primeiro turno é sorteado.
+
+#### Evidências e limitações
+
+A implementação e testes do tabuleiro encontram-se em `backend/src/tabuleiro.py` e `backend/tests/test_tabuleiro.py`. A rota `POST /partida` em `backend/app.py` gere a criação e validação inicial, testada por `backend/tests/test_api_jogo.py` e Cypress (`frontend/cypress/e2e/partida.cy.js`). 
+Os dados da partida ficam salvos na sessão e no SQLite local.
 
 ### US04 — Acompanhar o resultado (Fernando)
 
@@ -490,7 +518,7 @@ Para a entrega de 31/10, o Projects distribui também documentação e revisão:
 | Caio | Requisitos funcionais das regras, turnos e dicas | Henrique |
 | Henrique | Requisitos funcionais da API/placar e não funcionais de persistência | Mateus |
 | Mateus | Descrição da aplicação, público e requisitos de interface/responsividade | Fernando |
-| Fernando | Método Kanban, links das histórias, requisitos de execução/CI/CD e consolidação | Caio |
+| Fernando | Método Kanban, links das rias, requisitos de execução/CI/CD e consolidação | Caio |
 
 O critério de conclusão registrado no quadro exige cinco histórias com autoria
 dos quatro integrantes, README com descrição e requisitos funcionais e não
