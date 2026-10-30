@@ -321,9 +321,17 @@ commit daquela execução e devem ser regenerados para a entrega final.
 
 ## Histórias de usuário
 
-As histórias de usuário estão **pendentes do envio de cada integrante**.
-Serão incluídas após serem criadas pelos próprios autores como issues e
-vinculadas ao [Projects do grupo](https://github.com/orgs/C14-Inatel-2026-2/projects/3).
+As histórias são registradas pelos próprios autores e vinculadas ao
+[Projects do grupo](https://github.com/orgs/C14-Inatel-2026-2/projects/3).
+Situação conferida em **30/10/2026**; o status atualizado deve ser consultado no quadro.
+
+| História | Autor | Issue | Situação na conferência |
+| --- | --- | --- | --- |
+| US01 — Enviar uma dica | Caio | [#59](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/59) | A fazer no quadro; critérios e evidências registrados |
+| US02 — Registrar um palpite | Henrique | [#57](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/57) | Em revisão |
+| US03 — Iniciar uma partida | Mateus | Aguardando criação pelo autor; acompanhamento na [#50](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/50) | Pendente |
+| US04 — Acompanhar o resultado | Fernando | [#60](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/60) | Em revisão |
+| US05 — Encerrar uma partida antecipadamente | Fernando | [#61](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/61) | Em revisão |
 
 Conforme a organização do quadro, Caio, Henrique e Mateus devem criar uma história
 cada, e Fernando deve criar duas, totalizando cinco. Cada história deve conter
@@ -342,8 +350,8 @@ com prazo em **31/10/2026**.
 
 Como jogador, quero registrar meu palpite para descobrir se acertei e acompanhar minha pontuação.
 
-- **Issue vinculada:** [#52](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/52)
-- **Status:** Concluído
+- **Issue vinculada:** [#57](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/57)
+- **Status:** Em revisão no Projects em 30/10/2026; documentação incorporada pela PR #58.
 - **Evidências:** PRs [#3](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/3), [#18](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/18) e [#44](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/44)
 
 #### Requisitos Funcionais (API e Placar)
@@ -352,7 +360,48 @@ Como jogador, quero registrar meu palpite para descobrir se acertei e acompanhar
 
 #### Requisitos Não-Funcionais (Persistência)
 - **RNF-PER-01 (Persistência em SQLite):** As jogadas, dados da partida e o histórico do placar são persistidos de forma síncrona no banco de dados SQLite (`jogo.db`).
-- **RNF-PER-02 (Tratamento de Erros e Integridade):** A API trata requisições inválidas, fora de turno ou com parâmetros incorretos retornando status HTTP 4xx (como 400 ou 409) sem comprometer a integridade do banco de dados.
+- **RNF-PER-02 (Tratamento de erros):** A API rejeita entradas inválidas com HTTP 400 e operações incompatíveis com a fase com HTTP 409. Não há autenticação que valide a identidade do jogador; atomicidade e recuperação completa continuam pendentes na #9.
+
+### US04 e US05 — Resultado e encerramento (Fernando)
+
+Como jogador, quero acompanhar os participantes, os acertos, os erros e o resultado
+final para saber o desempenho cooperativo da partida ([US04, #60](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/60)).
+Como jogador, quero encerrar antecipadamente para consultar o placar acumulado
+([US05, #61](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/61)).
+As issues detalham os critérios de aceite, a prioridade alta e as evidências das
+PRs #41 e #56. O placar é do time; os nomes permanecem na sessão da interface.
+
+| Requisito funcional | Comportamento verificável |
+| --- | --- |
+| RF-RES-01 | Exibir nomes e participação no turno; atualizar acertos e erros após cada palpite válido |
+| RF-RES-02 | Consultar os totais em `GET /partida/<id>/placar` e mostrar o resultado ao finalizar |
+| RF-ENC-01 | Permitir encerramento nas fases de dica e palpite, preservando tabuleiro e placar |
+| RF-ENC-02 | Registrar término e pontuação; bloquear novas dicas e palpites com HTTP 409 |
+| RF-ENC-03 | Em erro HTTP de encerramento, informar a falha e permitir nova tentativa na interface |
+
+Validação documental em 30/10/2026, base `ad18e58`: 21 testes aprovados com
+`.venv/bin/python -m pytest backend/tests/test_api_jogo.py -q`, incluindo placar,
+nove rodadas, encerramento nas duas fases e repetição idempotente. Os testes
+Cypress existentes em `partida.cy.js`, `interface-partida.cy.js` e
+`real-api/fluxo.cy.js` cobrem interface, falha HTTP e integração; não foram
+executados novamente nesta atualização. Falha HTTP não comprova rollback no banco.
+
+### Requisitos de execução e CI/CD (Fernando)
+
+| Requisito não funcional | Configuração e limite |
+| --- | --- |
+| RNF-EXE-01 | Executar localmente com Python e dependências de `backend/requirements.txt`; comandos de instalação para Unix e Windows nas seções anteriores |
+| RNF-EXE-02 | Servir interface e API na mesma origem pelo Flask; `http.server` é usado somente na suíte de interface com respostas simuladas |
+| RNF-CI-01 | Instalar dependências npm pelo lockfile e executar testes Python/JavaScript/Cypress nos stages Jenkins dos integrantes |
+| RNF-CI-02 | Bloquear publicação em falha e conferir o SHA publicado por `/static/release.json`, `/health` e interface |
+| RNF-CI-03 | Arquivar relatórios e cobertura; execução automática depende de Jenkins, Docker, computador e internet disponíveis |
+
+A consolidação preserva a contribuição de Henrique da PR #58 e corrige o vínculo
+da US02, que apontava para a PR #52. A documentação de Caio e a US03/descrição de
+Mateus ainda precisam ser entregues pelos autores. A revisão de Fernando sobre
+a US01 está registrada na #59; a contribuição de Caio no README será revisada
+quando houver uma PR correspondente. A #51 permanece em revisão até a conferência
+independente e a resolução das pendências aplicáveis.
 
 ## Metodologia de desenvolvimento
 
