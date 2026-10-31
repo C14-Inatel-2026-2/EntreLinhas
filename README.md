@@ -368,7 +368,7 @@ Como jogador, quero iniciar uma partida com meus amigos informando o número de 
 
 - **Issue vinculada:** [#63](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/63)
 - **Prioridade:** Alta.
-- **Status:** Em desenvolvimento/conclusão.
+- **Status:** Em revisão nesta PR.
 
 #### Requisitos funcionais
 
@@ -387,8 +387,8 @@ Como jogador, quero iniciar uma partida com meus amigos informando o número de 
 
 #### Evidências e limitações
 
-A implementação e testes do tabuleiro encontram-se em `backend/src/tabuleiro.py` e `backend/tests/test_tabuleiro.py`. A rota `POST /partida` em `backend/app.py` gere a criação e validação inicial, testada por `backend/tests/test_api_jogo.py` e Cypress (`frontend/cypress/e2e/partida.cy.js`). 
-Os dados da partida ficam salvos na sessão e no SQLite local.
+O tabuleiro web 3 × 3 é montado em `backend/jogo.py`. A rota `POST /partida` em `backend/app.py` cria e valida a partida; os testes em `backend/tests/test_api_jogo.py` verificam o estado inicial, os limites de jogadores e a ordem sorteada. Os cenários Cypress em `frontend/cypress/e2e/partida.cy.js` e `frontend/cypress/e2e/interface-partida.cy.js` verificam a interface e os nomes.
+O baralho é embaralhado no início, e a carta secreta é apresentada ao jogador da vez em cada rodada. O estado da partida fica no SQLite; os nomes permanecem apenas na sessão da interface. Não há retomada completa após recarregar a página (#9).
 
 ### US04 — Acompanhar o resultado (Fernando)
 
@@ -518,7 +518,7 @@ Para a entrega de 31/10, o Projects distribui também documentação e revisão:
 | Caio | Requisitos funcionais das regras, turnos e dicas | Henrique |
 | Henrique | Requisitos funcionais da API/placar e não funcionais de persistência | Mateus |
 | Mateus | Descrição da aplicação, público e requisitos de interface/responsividade | Fernando |
-| Fernando | Método Kanban, links das rias, requisitos de execução/CI/CD e consolidação | Caio |
+| Fernando | Método Kanban, links das histórias, requisitos de execução/CI/CD e consolidação | Caio |
 
 O critério de conclusão registrado no quadro exige cinco histórias com autoria
 dos quatro integrantes, README com descrição e requisitos funcionais e não
