@@ -353,7 +353,7 @@ Situação conferida em **30/10/2026**; o status atualizado deve ser consultado 
 | --- | --- | --- | --- |
 | US01 — Enviar uma dica | Caio | [#59](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/59) | A fazer no quadro; critérios e evidências registrados |
 | US02 — Registrar um palpite | Henrique | [#57](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/57) | Em revisão |
-| US03 — Iniciar uma partida | Mateus | Aguardando criação pelo autor; acompanhamento na [#50](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/50) | Pendente |
+| US03 — Iniciar uma partida | Mateus | [#63](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/63) | Em revisão |
 | US04 — Acompanhar o resultado | Fernando | [#60](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/60) | Em revisão |
 | US05 — Encerrar uma partida antecipadamente | Fernando | [#61](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/61) | Em revisão |
 
@@ -399,6 +399,34 @@ Como jogador, quero registrar meu palpite para descobrir se acertei e acompanhar
 #### Requisitos Não-Funcionais (Persistência)
 - **RNF-PER-01 (Persistência em SQLite):** As jogadas, dados da partida e o histórico do placar são persistidos de forma síncrona no banco de dados SQLite (`jogo.db`).
 - **RNF-PER-02 (Tratamento de erros):** A API rejeita entradas inválidas com HTTP 400 e operações incompatíveis com a fase com HTTP 409. Não há autenticação que valide a identidade do jogador; atomicidade e recuperação completa continuam pendentes na #9.
+
+### US03 — Iniciar uma partida (Mateus Mendonça)
+
+Como jogador, quero iniciar uma partida com meus amigos informando o número de jogadores e os nomes para configurar o tabuleiro e distribuir as cartas iniciais.
+
+- **Issue vinculada:** [#63](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/63)
+- **Prioridade:** Alta.
+- **Status:** Em revisão nesta PR.
+
+#### Requisitos funcionais
+
+| Requisito | Comportamento verificável |
+| --- | --- |
+| RF-INI-01 | Configurar de 2 a 6 jogadores e exigir o preenchimento dos nomes na interface inicial |
+| RF-INI-02 | Validar o envio em `POST /partida`, gerando o tabuleiro de 3x3 e distribuindo as cartas iniciais |
+
+#### Critérios de aceite
+
+- A interface inicial permite configurar e aceitar de 2 a 6 jogadores.
+- É obrigatório preencher os nomes dos participantes para avançar; caso contrário, a interface bloqueia e exibe um erro.
+- Ao enviar a requisição de início (`POST /partida`), a API valida o número de jogadores, inicializa o estado e retorna a estrutura inicial correta.
+- O tabuleiro com os tópicos nas bordas é gerado e exibido corretamente assim que a partida é iniciada.
+- As cartas iniciais são distribuídas automaticamente e o primeiro turno é sorteado.
+
+#### Evidências e limitações
+
+O tabuleiro web 3 × 3 é montado em `backend/jogo.py`. A rota `POST /partida` em `backend/app.py` cria e valida a partida; os testes em `backend/tests/test_api_jogo.py` verificam o estado inicial, os limites de jogadores e a ordem sorteada. Os cenários Cypress em `frontend/cypress/e2e/partida.cy.js` e `frontend/cypress/e2e/interface-partida.cy.js` verificam a interface e os nomes.
+O baralho é embaralhado no início, e a carta secreta é apresentada ao jogador da vez em cada rodada. O estado da partida fica no SQLite; os nomes permanecem apenas na sessão da interface. Não há retomada completa após recarregar a página (#9).
 
 ### US04 — Acompanhar o resultado (Fernando)
 
@@ -492,11 +520,11 @@ não comprova rollback no servidor; atomicidade e recuperação permanecem na #9
 | RNF-CI-03 | Arquivar relatórios e cobertura; execução automática depende de Jenkins, Docker, computador e internet disponíveis |
 
 A consolidação preserva a contribuição de Henrique da PR #58 e corrige o vínculo
-da US02, que apontava para a PR #52. A documentação de Caio e a US03/descrição de
-Mateus ainda precisam ser entregues pelos autores. A revisão de Fernando sobre
-a US01 está registrada na #59; a contribuição de Caio no README será revisada
-quando houver uma PR correspondente. A #51 permanece em revisão até a conferência
-independente e a resolução das pendências aplicáveis.
+da US02, que apontava para a PR #52. As PRs #64 e #65 documentam, respectivamente,
+a US01/requisitos de Caio e a US03 de Mateus. A revisão de Fernando sobre a US01
+está registrada na #59. A descrição de Mateus e as demais pendências da entrega
+continuam sujeitas à conferência no quadro. A #51 permanece em revisão até a
+conferência independente e a resolução das pendências aplicáveis.
 
 ## Metodologia de desenvolvimento
 
