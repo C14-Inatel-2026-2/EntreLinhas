@@ -293,7 +293,7 @@ que dependam do ID de um serviço Railway.
 | RF-DIC-04 | A dica é gravada com a jogada (jogador, coordenada correta e tentada) | Implementado em `backend/app.py`; sem teste automatizado do campo `dica` |
 
 Limitações: não há autenticação, então a identificação do jogador da vez ocorre
-apenas na interface. A regra de palavra única considera somente espaços, de modo
+apenas na interface. A regra de palavra única considera separadores em branco, de modo
 que palavras com hífen são aceitas. A API recusa dicas vazias ou acima de 60
 caracteres, mas os testes de API cobrem apenas o caso de duas palavras.
 
@@ -345,9 +345,17 @@ commit daquela execução e devem ser regenerados para a entrega final.
 
 ## Histórias de usuário
 
-As histórias de usuário estão **pendentes do envio de cada integrante**.
-Serão incluídas após serem criadas pelos próprios autores como issues e
-vinculadas ao [Projects do grupo](https://github.com/orgs/C14-Inatel-2026-2/projects/3).
+As histórias são registradas pelos próprios autores e vinculadas ao
+[Projects do grupo](https://github.com/orgs/C14-Inatel-2026-2/projects/3).
+Situação conferida em **30/10/2026**; o status atualizado deve ser consultado no quadro.
+
+| História | Autor | Issue | Situação na conferência |
+| --- | --- | --- | --- |
+| US01 — Enviar uma dica | Caio | [#59](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/59) | A fazer no quadro; critérios e evidências registrados |
+| US02 — Registrar um palpite | Henrique | [#57](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/57) | Em revisão |
+| US03 — Iniciar uma partida | Mateus | Aguardando criação pelo autor; acompanhamento na [#50](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/50) | Pendente |
+| US04 — Acompanhar o resultado | Fernando | [#60](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/60) | Em revisão |
+| US05 — Encerrar uma partida antecipadamente | Fernando | [#61](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/61) | Em revisão |
 
 Conforme a organização do quadro, Caio, Henrique e Mateus devem criar uma história
 cada, e Fernando deve criar duas, totalizando cinco. Cada história deve conter
@@ -370,11 +378,125 @@ correta no tabuleiro.
 
 - **Issue:** [US01 — #59](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/59)
 - **Prioridade:** Alta
-- **Status:** Concluído
+- **Status:** Implementação concluída; documentação em revisão nesta PR.
 - **Evidências:** [PR #20](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/20)
   e [PR #56](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/56); testes em
   `backend/tests/test_api_jogo.py` e `frontend/cypress/e2e/`
 - **Requisitos:** [regras, turnos e dicas](#regras-turnos-e-dicas)
+
+### US02 — Registrar um palpite (Henrique Rodrigues)
+
+Como jogador, quero registrar meu palpite para descobrir se acertei e acompanhar minha pontuação.
+
+- **Issue vinculada:** [#57](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/57)
+- **Status:** Em revisão no Projects em 30/10/2026; documentação incorporada pela PR #58.
+- **Evidências:** PRs [#3](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/3), [#18](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/18) e [#44](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/44)
+
+#### Requisitos Funcionais (API e Placar)
+- **RF-API-01 (Registro e Validação):** A API Flask disponibiliza o endpoint `POST /partida/<id>/palpite` para receber, validar a opção selecionada e registrar a jogada.
+- **RF-API-02 (Feedback e Pontuação):** O retorno da requisição informa se o palpite foi correto ou incorreto e atualiza o placar e os turnos da partida de acordo com as regras do jogo.
+
+#### Requisitos Não-Funcionais (Persistência)
+- **RNF-PER-01 (Persistência em SQLite):** As jogadas, dados da partida e o histórico do placar são persistidos de forma síncrona no banco de dados SQLite (`jogo.db`).
+- **RNF-PER-02 (Tratamento de erros):** A API rejeita entradas inválidas com HTTP 400 e operações incompatíveis com a fase com HTTP 409. Não há autenticação que valide a identidade do jogador; atomicidade e recuperação completa continuam pendentes na #9.
+
+### US04 — Acompanhar o resultado (Fernando)
+
+Como jogador, quero acompanhar os participantes, os acertos, os erros e o resultado
+final para saber o desempenho cooperativo da partida.
+
+- **Issue vinculada:** [#60](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/60)
+- **Prioridade:** Alta.
+- **Status:** Em revisão no Projects em 30/10/2026.
+
+#### Requisitos funcionais
+
+| Requisito | Comportamento verificável |
+| --- | --- |
+| RF-RES-01 | Exibir nomes e participação no turno; atualizar acertos e erros após cada palpite válido |
+| RF-RES-02 | Consultar os totais em `GET /partida/<id>/placar` e mostrar o resultado ao finalizar |
+
+#### Critérios de aceite
+
+- Identificar os participantes pelos nomes informados e destacar sua participação no turno.
+- Iniciar o placar com zero acertos e erros; somar um acerto ou um erro após cada palpite válido.
+- Retornar os totais registrados ao consultar o placar pela API.
+- Exibir os totais finais após as nove cartas ou o encerramento antecipado.
+
+#### Evidências e limitações
+
+As PRs [#41](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/41) e
+[#56](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/56) registram interface,
+feedback, nomes e turnos. Em `backend/tests/test_api_jogo.py`, os testes
+`test_dica_palpite_e_placar_sao_persistidos`,
+`test_palpite_incorreto_descarta_carta_e_soma_erro` e
+`test_partida_termina_apos_todas_as_cartas` verificam pontuação e término.
+Os cenários de `frontend/cypress/e2e/interface-partida.cy.js` e
+`frontend/cypress/real-api/fluxo.cy.js` cobrem placar e resultado na interface.
+
+Validação em 30/10/2026, base `ad18e58`: 21 testes de API aprovados com
+`.venv/bin/python -m pytest backend/tests/test_api_jogo.py -q`.
+Os cenários Cypress foram inspecionados, sem nova execução nesta atualização.
+O placar é coletivo, sem ranking individual; os nomes ficam na sessão da interface.
+Não há retomada completa após recarregar a página (#9).
+
+### US05 — Encerrar uma partida antecipadamente (Fernando)
+
+Como jogador, quero encerrar uma partida antecipadamente para finalizar o jogo e
+consultar o placar acumulado até aquele momento.
+
+- **Issue vinculada:** [#61](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/61)
+- **Prioridade:** Alta.
+- **Status:** Em revisão no Projects em 30/10/2026.
+
+#### Requisitos funcionais
+
+| Requisito | Comportamento verificável |
+| --- | --- |
+| RF-ENC-01 | Permitir encerramento nas fases de dica e palpite, preservando tabuleiro e placar |
+| RF-ENC-02 | Registrar término e pontuação; bloquear novas dicas e palpites com HTTP 409 |
+| RF-ENC-03 | Em erro HTTP de encerramento, informar a falha e permitir nova tentativa na interface |
+
+#### Critérios de aceite
+
+- Permitir encerrar nas fases de dica e palpite, inclusive antes da primeira jogada.
+- Retornar fase final com HTTP 200, conservando tabuleiro e placar e ocultando carta e dica.
+- Persistir data de término e pontuação final; rejeitar novas dicas e palpites com HTTP 409.
+- Manter resultado e data ao repetir o encerramento; retornar HTTP 404 para partida inexistente.
+- Mostrar o resultado após sucesso; em falha HTTP, manter a tela da partida e permitir tentar novamente.
+
+#### Evidências e limitações
+
+A PR [#41](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/41) registra o
+encerramento na API e na interface. Em `backend/tests/test_api_jogo.py`, os testes
+`test_encerramento_antecipado_persiste_e_bloqueia_novas_jogadas` e
+`test_encerrar_sem_jogadas_e_rejeitar_partida_inexistente` verificam as duas fases,
+persistência, repetição e erros. Os cenários de
+`frontend/cypress/e2e/partida.cy.js` cobrem encerramento e falha HTTP seguida de
+nova tentativa; `frontend/cypress/real-api/fluxo.cy.js` verifica o placar persistido.
+
+Validação em 30/10/2026, base `ad18e58`: 21 testes de API aprovados com
+`.venv/bin/python -m pytest backend/tests/test_api_jogo.py -q`.
+Os cenários Cypress foram inspecionados, sem nova execução nesta atualização.
+O cenário de falha HTTP da interface usa resposta simulada. Falha de resposta
+não comprova rollback no servidor; atomicidade e recuperação permanecem na #9.
+
+### Requisitos de execução e CI/CD (Fernando)
+
+| Requisito não funcional | Configuração e limite |
+| --- | --- |
+| RNF-EXE-01 | Executar localmente com Python e dependências de `backend/requirements.txt`; comandos de instalação para Unix e Windows nas seções anteriores |
+| RNF-EXE-02 | Servir interface e API na mesma origem pelo Flask; `http.server` é usado somente na suíte de interface com respostas simuladas |
+| RNF-CI-01 | Instalar dependências npm pelo lockfile e executar testes Python/JavaScript/Cypress nos stages Jenkins dos integrantes |
+| RNF-CI-02 | Bloquear publicação em falha e conferir o SHA publicado por `/static/release.json`, `/health` e interface |
+| RNF-CI-03 | Arquivar relatórios e cobertura; execução automática depende de Jenkins, Docker, computador e internet disponíveis |
+
+A consolidação preserva a contribuição de Henrique da PR #58 e corrige o vínculo
+da US02, que apontava para a PR #52. A documentação de Caio e a US03/descrição de
+Mateus ainda precisam ser entregues pelos autores. A revisão de Fernando sobre
+a US01 está registrada na #59; a contribuição de Caio no README será revisada
+quando houver uma PR correspondente. A #51 permanece em revisão até a conferência
+independente e a resolução das pendências aplicáveis.
 
 ## Metodologia de desenvolvimento
 
