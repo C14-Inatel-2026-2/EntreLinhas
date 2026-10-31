@@ -520,11 +520,11 @@ não comprova rollback no servidor; atomicidade e recuperação permanecem na #9
 | RNF-CI-03 | Arquivar relatórios e cobertura; execução automática depende de Jenkins, Docker, computador e internet disponíveis |
 
 A consolidação preserva a contribuição de Henrique da PR #58 e corrige o vínculo
-da US02, que apontava para a PR #52. A documentação de Caio e a US03/descrição de
-Mateus ainda precisam ser entregues pelos autores. A revisão de Fernando sobre
-a US01 está registrada na #59; a contribuição de Caio no README será revisada
-quando houver uma PR correspondente. A #51 permanece em revisão até a conferência
-independente e a resolução das pendências aplicáveis.
+da US02, que apontava para a PR #52. As PRs #64 e #65 documentam, respectivamente,
+a US01/requisitos de Caio e a US03 de Mateus. A revisão de Fernando sobre a US01
+está registrada na #59. A descrição de Mateus e as demais pendências da entrega
+continuam sujeitas à conferência no quadro. A #51 permanece em revisão até a
+conferência independente e a resolução das pendências aplicáveis.
 
 ## Metodologia de desenvolvimento
 
