@@ -9,6 +9,7 @@ let ocupado = false;
 let telaAtual = "tela-inicial";
 let nomesJogadores = [];
 let intervaloTempo = null;
+let intervaloTotal = null;
 
 function definirLoading(valor) {
   ocupado = valor;
@@ -166,6 +167,30 @@ function ocultarCarta() {
   elemento("revelar-carta").setAttribute("aria-expanded", "false");
 }
 
+function formatarDuracao(segundos) {
+  const min = String(Math.floor(segundos / 60)).padStart(2, "0");
+  const seg = String(segundos % 60).padStart(2, "0");
+  return `${min}:${seg}`;
+}
+
+function pararTempoTotal() {
+  clearInterval(intervaloTotal);
+  intervaloTotal = null;
+}
+
+function iniciarTempoTotal(segundos) {
+  pararTempoTotal();
+  const rotulo = elemento("tempo-total");
+  if (segundos == null) { rotulo.hidden = true; return; }
+  const inicio = Date.now() - segundos * 1000; // ressincroniza com o servidor a cada render
+  const atualizar = () => {
+    rotulo.textContent = `Tempo de partida: ${formatarDuracao(Math.floor((Date.now() - inicio) / 1000))}`;
+  };
+  rotulo.hidden = false;
+  atualizar();
+  intervaloTotal = setInterval(atualizar, 1000);
+}
+
 function pararCronometro() {
   clearInterval(intervaloTempo);
   intervaloTempo = null;
@@ -241,6 +266,10 @@ function renderizarPartida(dados) {
   elemento("form-dica").reset();
   elemento("form-palpite").reset();
   iniciarCronometro(dados.tempo_restante);
+  iniciarTempoTotal(dados.fase === "final" ? null : dados.duracao_segundos);
+  elemento("duracao-final").textContent = dados.fase === "final" && dados.duracao_segundos != null
+    ? `A partida durou ${formatarDuracao(dados.duracao_segundos)}.`
+    : "";
   mostrarTela(dados.fase === "final" ? "tela-final" : "tela-jogo");
   if (dados.mensagem?.startsWith("Tempo esgotado")) mostrarTempoEsgotado();
 }
@@ -357,6 +386,7 @@ function revelarCarta() {
 
 function jogarNovamente() {
   pararCronometro();
+  pararTempoTotal();
   partida = null;
   nomesJogadores = [];
   ocultarCarta();
