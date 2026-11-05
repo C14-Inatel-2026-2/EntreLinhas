@@ -8,6 +8,7 @@ let partida = null;
 let ocupado = false;
 let telaAtual = "tela-inicial";
 let nomesJogadores = [];
+let intervaloTempo = null;
 
 function definirLoading(valor) {
   ocupado = valor;
@@ -165,6 +166,42 @@ function ocultarCarta() {
   elemento("revelar-carta").setAttribute("aria-expanded", "false");
 }
 
+function pararCronometro() {
+  clearInterval(intervaloTempo);
+  intervaloTempo = null;
+  elemento("cronometro").hidden = true;
+}
+
+function iniciarCronometro(segundos) {
+  pararCronometro();
+  if (segundos == null) return;
+  const fim = Date.now() + segundos * 1000; // relógio local, sem depender da hora do servidor
+  const rotulo = elemento("cronometro");
+  const atualizar = () => {
+    const restante = Math.max(0, Math.ceil((fim - Date.now()) / 1000));
+    rotulo.textContent = `⏱ ${restante}s`;
+    rotulo.classList.toggle("cronometro-urgente", restante <= 10);
+    if (restante === 0) {
+      clearInterval(intervaloTempo);
+      estourarTempo();
+    }
+  };
+  rotulo.hidden = false;
+  intervaloTempo = setInterval(atualizar, 250);
+  atualizar();
+}
+
+async function estourarTempo() {
+  if (!partida || partida.fase === "final") return;
+  await executarAcao(async () => {
+    const dados = await chamarAPI(`/partida/${encodeURIComponent(partida.id)}/tempo`, "POST");
+    // Sem mensagem = o servidor ainda não considera esgotado: só ressincroniza o contador
+    // (evita o renderizarPartida limpar o que o jogador está a escrever).
+    if (!dados.mensagem) return iniciarCronometro(dados.tempo_restante);
+    renderizarPartida(dados);
+  });
+}
+
 function renderizarPartida(dados) {
   validarEstado(dados);
   const anteriores = new Set(partida?.tabuleiro.celulas.filter((celula) => celula.estado === "acerto").map((celula) => celula.coordenada));
@@ -203,7 +240,9 @@ function renderizarPartida(dados) {
   elemento("resumo-final").textContent = dados.resumo || "Obrigado por jogar em equipe!";
   elemento("form-dica").reset();
   elemento("form-palpite").reset();
+  iniciarCronometro(dados.tempo_restante);
   mostrarTela(dados.fase === "final" ? "tela-final" : "tela-jogo");
+  if (dados.mensagem?.startsWith("Tempo esgotado")) mostrarTempoEsgotado();
 }
 
 function abrirTelaDeNomes(evento) {
@@ -264,6 +303,7 @@ async function enviarPalpite(evento) {
     const placarAnterior = partida.placar;
     const dados = await chamarAPI(`/partida/${encodeURIComponent(partida.id)}/palpite`, "POST", { palpite: coordenada });
     renderizarPartida(dados);
+    if (dados.mensagem?.startsWith("Tempo esgotado")) return;    
     if (dados.placar.acertos > placarAnterior.acertos) mostrarResultadoPalpite(true);
     else if (dados.placar.erros > placarAnterior.erros) mostrarResultadoPalpite(false);
   });
@@ -277,6 +317,16 @@ function mostrarResultadoPalpite(acertou) {
   elemento("descricao-palpite").textContent = acertou
     ? "Boa conexão! Mais uma carta posicionada no tabuleiro."
     : "Essa não era a coordenada. A carta foi descartada, mas cada ideia conta!";
+  elemento("continuar-palpite").textContent = partida.fase === "final" ? "Ver resultado" : "Continuar";
+  popup.showModal();
+}
+
+function mostrarTempoEsgotado() {
+  const popup = elemento("resultado-palpite");
+  popup.dataset.resultado = "erro";
+  elemento("icone-palpite").textContent = "⏱";
+  elemento("titulo-palpite").textContent = "Tempo esgotado!";
+  elemento("descricao-palpite").textContent = "A carta foi descartada e um erro foi adicionado ao placar.";
   elemento("continuar-palpite").textContent = partida.fase === "final" ? "Ver resultado" : "Continuar";
   popup.showModal();
 }
@@ -306,6 +356,7 @@ function revelarCarta() {
 }
 
 function jogarNovamente() {
+  pararCronometro();
   partida = null;
   nomesJogadores = [];
   ocultarCarta();

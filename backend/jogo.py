@@ -1,10 +1,16 @@
 """Regras e representação da partida consumida pela interface web."""
 
+import time
+import math
 from src.Baralho import Baralho
 
 
 LINHAS = ("A", "B", "C")
 COLUNAS = ("1", "2", "3")
+
+TEMPO_DICA = 60
+TEMPO_PALPITE = 30 
+TOLERANCIA = 2
 
 def criar_cartas():
     baralho = Baralho(LINHAS, COLUNAS)
@@ -18,6 +24,18 @@ def jogador_da_rodada(partida, progresso):
         return ordem[min(progresso["indice"], len(ordem) - 1)]
     return progresso["indice"] % partida["num_jogadores"] + 1
 
+def segundos_restantes(progresso):
+    """None = sem cronómetro (partida antiga ou fase final)."""
+    inicio = progresso.get("turno_inicio")
+    if inicio is None or progresso["fase"] not in ("dica", "palpite"):
+        return None
+    limite = TEMPO_DICA if progresso["fase"] == "dica" else TEMPO_PALPITE
+    return limite - (time.time() - inicio)
+
+
+def tempo_esgotado(progresso):
+    restante = segundos_restantes(progresso)
+    return restante is not None and restante < -TOLERANCIA
 
 def montar_estado(partida, progresso, jogadas, mensagem=None):
     acertos = {jogada["coordenada_correta"] for jogada in jogadas if jogada["acertou"]}
@@ -25,6 +43,7 @@ def montar_estado(partida, progresso, jogadas, mensagem=None):
     cartas = progresso["cartas"]
     indice = progresso["indice"]
     fase = progresso["fase"]
+    restante = segundos_restantes(progresso)
 
     estado = {
         "id": partida["id"],
@@ -43,6 +62,7 @@ def montar_estado(partida, progresso, jogadas, mensagem=None):
             ],
         },
         "placar": placar,
+        "tempo_restante": None if restante is None else max(0, math.ceil(restante)),
     }
     if mensagem:
         estado["mensagem"] = mensagem
