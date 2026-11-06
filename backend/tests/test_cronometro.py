@@ -35,17 +35,17 @@ def test_duracao_total_e_fixa_apos_finalizar():
     (0, "Fracasso"), (3, "Fracasso"), (4, "Mediano"), (5, "Mediano"),
     (6, "Bom"), (7, "Bom"), (8, "Espetacular"), (9, "Espetacular"),
 ])
-@pytest.mark.parametrize("duracao,dentro", [(299, True), (300, True), (301, False), (None, None)])
-def test_classificacao_oficial_e_referencia_de_tempo_independentes(acertos, classe, duracao, dentro):
-    resultado = avaliar_desempenho(acertos, 9, 9, duracao)
+def test_classificacao_oficial_depende_apenas_dos_acertos(acertos, classe):
+    resultado = avaliar_desempenho(acertos, 9, 9)
     assert resultado["classificacao"] == classe
-    assert resultado["dentro_referencia"] is dentro
+    assert "dentro_referencia" not in resultado
+    assert "referencia_segundos" not in resultado
     assert resultado["concluida"] is True
     assert resultado["cartas_restantes"] == 0
 
 
 def test_encerramento_antecipado_tem_avaliacao_parcial():
-    resultado = avaliar_desempenho(4, 5, 9, 80)
+    resultado = avaliar_desempenho(4, 5, 9)
     assert resultado["classificacao"] == "Mediano"
     assert resultado["concluida"] is False
     assert resultado["cartas_restantes"] == 4

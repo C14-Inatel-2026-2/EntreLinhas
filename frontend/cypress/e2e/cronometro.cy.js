@@ -12,9 +12,9 @@ function iniciar(estado) {
   cy.get("#continuar-turno").click();
 }
 
-const desempenho = (duracao, concluida = true) => ({
+const desempenho = (concluida = true) => ({
   classificacao: "Bom", concluida, cartas_restantes: concluida ? 0 : 3,
-  total_cartas: 9, referencia_segundos: 300, dentro_referencia: duracao <= 300,
+  total_cartas: 9,
 });
 
 describe("Tempo livre da partida e desempenho", () => {
@@ -38,10 +38,10 @@ describe("Tempo livre da partida e desempenho", () => {
   });
 
   [205, 301].forEach((duracao) => {
-    it(`mostra classificação e ritmo ao concluir em ${duracao}s e congela o relógio final`, function () {
+    it(`mostra classificação sem limite de tempo ao concluir em ${duracao}s e congela o relógio final`, function () {
       const palpite = { ...this.base, fase: "palpite", carta_secreta: null, dica: "ponte", duracao_segundos: 100 };
       const final = { ...palpite, fase: "final", dica: null, duracao_segundos: duracao,
-        placar: { acertos: 7, erros: 2 }, desempenho: desempenho(duracao), resumo: "Partida encerrada." };
+        placar: { acertos: 7, erros: 2 }, desempenho: desempenho(), resumo: "Partida encerrada." };
       cy.intercept("POST", `${rota}/dica`, { body: palpite }).as("dica");
       cy.intercept("POST", `${rota}/palpite`, { body: final }).as("palpite");
       iniciar({ ...this.base, duracao_segundos: 0 });
@@ -54,7 +54,8 @@ describe("Tempo livre da partida e desempenho", () => {
       cy.wait("@palpite");
       cy.get("#continuar-palpite").click();
       cy.get("#classificacao-final").should("have.text", "Bom");
-      cy.get("#ritmo-final").should("contain.text", duracao <= 300 ? "em até 5 minutos" : "acima da referência");
+      cy.get("#ritmo-final").should("not.exist");
+      cy.get("#desempenho-final").should("not.contain.text", "5 minutos");
       const esperado = duracao === 205 ? "03:25" : "05:01";
       cy.get("#duracao-final").should("contain.text", esperado);
       cy.tick(60000);
@@ -75,12 +76,12 @@ describe("Tempo livre da partida e desempenho", () => {
     iniciar({ ...this.base, duracao_segundos: 0 });
     cy.intercept("POST", `${rota}/encerrar`, { body: {
       ...this.base, fase: "final", carta_secreta: null, duracao_segundos: 90,
-      placar: { acertos: 6, erros: 0 }, desempenho: desempenho(90, false),
+      placar: { acertos: 6, erros: 0 }, desempenho: desempenho(false),
     }}).as("encerrar");
     cy.get("#encerrar-jogo").click();
     cy.wait("@encerrar");
     cy.get("#classificacao-final").should("have.text", "Resultado parcial: Bom");
     cy.get("#cartas-restantes").should("contain.text", "3 de 9");
-    cy.get("#ritmo-final").should("contain.text", "antes de jogar todas");
+    cy.get("#ritmo-final").should("not.exist");
   });
 });

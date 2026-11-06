@@ -53,20 +53,17 @@ web 3 × 3 segue as faixas oficiais do modo **Expresso**:
 | 6–7 | Bom |
 | 8–9 | Espetacular |
 
-O resultado também indica se a conclusão ocorreu em até **5 minutos** ou acima
-dessa referência. O tempo não altera a classificação por acertos. No encerramento
-antecipado, o resultado é identificado como **parcial**, com as cartas não jogadas;
-uma partida interrompida não recebe a mensagem de conclusão em até 5 minutos.
+A duração é mostrada apenas como informação, sem limite, comparação com tempo
+alvo ou efeito na classificação. No encerramento antecipado, o resultado é
+identificado como **parcial**, com as cartas não jogadas.
 
 Fonte: [página oficial da PaperGames](https://papergames.com.br/entre-linhas/) e
 [manual brasileiro, Regras v1.0, páginas 3 e 6](https://comparajogos-forum.s3.dualstack.sa-east-1.amazonaws.com/uploads/original/2X/6/6005a7acc0eed14f06f6d5406857c4c6123b1651.pdf).
 O [atalho oficial do manual](https://ppgam.es/entre-linhas-regras) direciona ao
-OneDrive; o PDF acima é uma cópia pública do manual da editora. O manual oferece
-controle **opcional** de 5 minutos no Expresso/Clássico e 10 no Expert, para a
-partida inteira. **Adaptação web:** o tempo é livre e os 5 minutos servem somente
-como referência de ritmo, sem encerramento automático nem pontuação extra por
-velocidade. A classificação por tempo não é uma regra oficial; a tabela por
-acertos é. O fluxo web permanece em turnos, diferente do jogo físico simultâneo.
+OneDrive; o PDF acima é uma cópia pública do manual da editora. **Adaptação web:**
+o tempo é livre, sem controle opcional, encerramento automático ou pontuação por
+velocidade. Apenas a tabela por acertos é usada na avaliação. O fluxo web
+permanece em turnos, diferente do jogo físico simultâneo.
 
 `POST /partida/<id>/tempo` permanece como consulta sem efeitos para compatibilidade
 com clientes antigos; não descarta cartas. A interface não faz chamadas a essa

@@ -184,7 +184,7 @@ function iniciarTempoTotal(segundos) {
   if (segundos == null) { rotulo.hidden = true; return; }
   const inicio = Date.now() - segundos * 1000; // ressincroniza com o servidor a cada render
   const atualizar = () => {
-    rotulo.textContent = `Tempo de partida: ${formatarDuracao(Math.floor((Date.now() - inicio) / 1000))}`;
+    rotulo.textContent = `⏱ ${formatarDuracao(Math.floor((Date.now() - inicio) / 1000))}`;
   };
   rotulo.hidden = false;
   atualizar();
@@ -318,11 +318,6 @@ function mostrarDesempenho(desempenho) {
   if (!desempenho) return;
   elemento("classificacao-final").textContent = desempenho.concluida
     ? desempenho.classificacao : `Resultado parcial: ${desempenho.classificacao}`;
-  elemento("ritmo-final").textContent = desempenho.dentro_referencia == null
-    ? "Tempo indisponível para comparar com a referência de 5 minutos."
-    : desempenho.concluida
-      ? (desempenho.dentro_referencia ? "Vocês concluíram em até 5 minutos." : "Vocês concluíram acima da referência de 5 minutos.")
-      : "Partida encerrada antes de jogar todas as cartas.";
   elemento("cartas-restantes").textContent = desempenho.cartas_restantes
     ? `${desempenho.cartas_restantes} de ${desempenho.total_cartas} cartas ficaram sem jogar.`
     : `Todas as ${desempenho.total_cartas} cartas foram jogadas.`;
