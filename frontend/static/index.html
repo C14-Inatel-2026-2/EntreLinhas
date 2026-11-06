@@ -33,7 +33,7 @@
             <input id="jogadores" name="jogadores" type="number" min="2" max="6" value="2" required inputmode="numeric">
             <button type="submit">Iniciar Partida <span aria-hidden="true">→</span></button>
           </div>
-          <p class="ajuda">Todo mundo no mesmo time. Tempo livre, sem limite por carta.</p>
+          <p class="ajuda">Todo mundo no mesmo time. Dicas no seu tempo. Dois minutos para adivinhar.</p>
         </form>
       </div>
       <aside class="ilustracao" aria-label="Exemplo: mar e viagem se conectam pela dica cruzeiro">
@@ -67,7 +67,7 @@
     </section>
 
     <section id="tela-jogo" class="tela" aria-labelledby="titulo-jogo" hidden>
-      <div class="topo-jogo"><div><p class="sobretitulo">CADA DICA APROXIMA O TIME</p><h1 id="titulo-jogo" tabindex="-1">Vamos conectar?</h1><div id="turno" class="turno-destaque" role="status"><strong id="nome-turno" class="resumo-turno"></strong><ul id="jogadores-turno" class="jogadores-turno" aria-label="Vez dos jogadores"></ul><p id="acao-turno"></p><p id="tempo-total" class="tempo-total" role="timer" aria-label="Tempo total de partida" hidden></p></div></div>
+      <div class="topo-jogo"><div><p class="sobretitulo">CADA DICA APROXIMA O TIME</p><h1 id="titulo-jogo" tabindex="-1">Vamos conectar?</h1><div id="turno" class="turno-destaque" role="status"><strong id="nome-turno" class="resumo-turno"></strong><ul id="jogadores-turno" class="jogadores-turno" aria-label="Vez dos jogadores"></ul><p id="acao-turno"></p><p id="tempo-total" class="tempo-total" role="timer" aria-label="Tempo total de partida" hidden></p><p id="cronometro" class="cronometro" role="timer" aria-label="Tempo restante para adivinhar" hidden></p></div></div>
         <div class="placar" aria-label="Placar" aria-live="polite"><span class="acertos"><strong id="acertos">0</strong> acertos</span><span class="erros"><strong id="erros">0</strong> erros</span></div>
       </div>
       <div class="area-jogo">

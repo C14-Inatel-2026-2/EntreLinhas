@@ -39,8 +39,10 @@ Para jogar:
 
 ## Tempo de partida e desempenho
 
-O relógio conta o **tempo total decorrido**, sem limite por carta ou fase e sem
-penalidades por demora. Continua durante os diálogos e as trocas de turno; para
+O relógio conta o **tempo total decorrido**, sem limite de duração da partida. Após
+o envio da dica, o time tem **2 minutos para adivinhar**. Ao esgotar esse prazo,
+a carta é descartada, soma um erro e o jogo avança para a próxima rodada. A fase
+de dica não tem limite. Continua durante os diálogos e as trocas de turno; para
 no encerramento e o resultado usa a data de término persistida no SQLite.
 
 No final, a API retorna `duracao_segundos` e `desempenho`. A avaliação do tabuleiro
@@ -61,14 +63,17 @@ Fonte: [página oficial da PaperGames](https://papergames.com.br/entre-linhas/) 
 [manual brasileiro, Regras v1.0, páginas 3 e 6](https://comparajogos-forum.s3.dualstack.sa-east-1.amazonaws.com/uploads/original/2X/6/6005a7acc0eed14f06f6d5406857c4c6123b1651.pdf).
 O [atalho oficial do manual](https://ppgam.es/entre-linhas-regras) direciona ao
 OneDrive; o PDF acima é uma cópia pública do manual da editora. **Adaptação web:**
-o tempo é livre, sem controle opcional, encerramento automático ou pontuação por
-velocidade. Apenas a tabela por acertos é usada na avaliação. O fluxo web
+o tempo total é livre; o limite de 2 minutos por palpite é uma regra da versão
+web, sem relação com a pontuação oficial por acertos. Apenas a tabela por acertos
+é usada na avaliação. O fluxo web
 permanece em turnos, diferente do jogo físico simultâneo.
 
-`POST /partida/<id>/tempo` permanece como consulta sem efeitos para compatibilidade
-com clientes antigos; não descarta cartas. A interface não faz chamadas a essa
-rota. Colunas antigas de `turno_inicio`, quando presentes no banco, são ignoradas,
-sem apagar ou recriar as partidas existentes.
+`POST /partida/<id>/tempo` verifica o prazo e aplica o descarte quando necessário.
+O frontend envia `turno` e `fase` para que pedidos antigos não penalizem a rodada
+seguinte; em falha HTTP, há nova tentativa automática. O início da fase de palpite
+fica em `turno_inicio` no SQLite. Bancos existentes são migrados sem apagar
+partidas; palpites antigos sem início registrado recebem dois minutos na migração.
+
 
 ## Tecnologias
 

@@ -1,5 +1,7 @@
 """Regras e representação da partida consumida pela interface web."""
 
+import math
+import time
 from datetime import datetime
 from src.Baralho import Baralho
 
@@ -19,6 +21,21 @@ def jogador_da_rodada(partida, progresso):
     if ordem:
         return ordem[min(progresso["indice"], len(ordem) - 1)]
     return progresso["indice"] % partida["num_jogadores"] + 1
+
+TEMPO_PALPITE = 120
+
+
+def segundos_restantes(progresso):
+    inicio = progresso.get("turno_inicio")
+    if progresso["fase"] != "palpite" or inicio is None:
+        return None
+    return TEMPO_PALPITE - (time.time() - inicio)
+
+
+def tempo_esgotado(progresso):
+    restante = segundos_restantes(progresso)
+    return restante is not None and restante <= 0
+
 
 def duracao_segundos(partida):
     if not partida.get("data_inicio"):
@@ -52,6 +69,7 @@ def montar_estado(partida, progresso, jogadas, mensagem=None):
     indice = progresso["indice"]
     fase = progresso["fase"]
     duracao = duracao_segundos(partida)
+    restante = segundos_restantes(progresso)
 
     estado = {
         "id": partida["id"],
@@ -72,6 +90,7 @@ def montar_estado(partida, progresso, jogadas, mensagem=None):
         "placar": placar,
         "turno": progresso["indice"],
         "duracao_segundos": duracao,
+        "tempo_restante": None if restante is None else max(0, math.ceil(restante)),
     }
     if mensagem:
         estado["mensagem"] = mensagem

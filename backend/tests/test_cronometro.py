@@ -70,7 +70,7 @@ def test_tempo_nao_descarta_cartas_nem_bloqueia_dica_ou_palpite(cliente):
         assert resposta.status_code == 200
         assert resposta.get_json()["placar"] == {"acertos": 1, "erros": 0}
     assert "desempenho" not in dica.get_json()
-    assert "tempo_restante" not in dica.get_json()
+    assert dica.get_json()["tempo_restante"] == 120
     assert "expira_em" not in dica.get_json()
 
 
@@ -96,3 +96,45 @@ def test_resultado_usa_data_final_persistida_e_nao_relogio_em_andamento(cliente,
         consulta = cliente.post(f"{rota}/tempo").get_json()
         assert repetida["duracao_segundos"] == consulta["duracao_segundos"] == esperado
         assert repetida["desempenho"] == estado["desempenho"] == consulta["desempenho"]
+
+
+@pytest.mark.parametrize("segundos,expirou", [(119.999, False), (120, True), (121, True)])
+@pytest.mark.parametrize("endpoint", ["tempo", "palpite"])
+def test_palpite_tem_dois_minutos_apenas_apos_dica(cliente, segundos, expirou, endpoint):
+    with patch("jogo.time.time", return_value=1000):
+        estado = cliente.post("/partida", json={"num_jogadores": 2}).get_json()
+    rota = f"/partida/{estado['id']}"
+    with patch("jogo.time.time", return_value=5000):
+        assert cliente.post(f"{rota}/tempo").get_json()["placar"]["erros"] == 0
+        dica = cliente.post(f"{rota}/dica", json={"dica": "ponte"}).get_json()
+        assert dica["tempo_restante"] == 120
+    with patch("jogo.time.time", return_value=5000 + segundos):
+        resposta = cliente.post(f"{rota}/{endpoint}", json={"palpite": estado["carta_secreta"], "turno": 0, "fase": "palpite"})
+        assert resposta.status_code == 200
+        novo = resposta.get_json()
+        assert novo["placar"]["erros"] == int(expirou)
+        if expirou:
+            assert novo["turno"] == 1 and novo["fase"] == "dica"
+            assert novo["tempo_restante"] is None
+            repetida = cliente.post(f"{rota}/tempo", json={"turno": 0, "fase": "palpite"}).get_json()
+            assert repetida["placar"]["erros"] == 1
+            assert repetida["turno"] == 1
+        elif endpoint == "palpite":
+            assert novo["placar"]["acertos"] == 1
+
+
+def test_expiracao_da_ultima_carta_finaliza_e_preserva_duracao(cliente):
+    estado = cliente.post("/partida", json={"num_jogadores": 2}).get_json()
+    rota = f"/partida/{estado['id']}"
+    for _ in range(8):
+        cliente.post(f"{rota}/dica", json={"dica": "ponte"})
+        estado = cliente.post(f"{rota}/palpite", json={"palpite": estado["carta_secreta"]}).get_json()
+    with patch("jogo.time.time", return_value=1000):
+        cliente.post(f"{rota}/dica", json={"dica": "ponte"})
+    with patch("jogo.time.time", return_value=1120):
+        final = cliente.post(f"{rota}/tempo", json={"turno": 8, "fase": "palpite"}).get_json()
+    assert final["fase"] == "final"
+    assert final["placar"] == {"acertos": 8, "erros": 1}
+    assert final["desempenho"]["classificacao"] == "Espetacular"
+    assert final["tempo_restante"] is None
+    assert cliente.post(f"{rota}/tempo").get_json()["duracao_segundos"] == final["duracao_segundos"]

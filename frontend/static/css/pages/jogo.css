@@ -210,3 +210,15 @@
     font-size: 37px;
   }
 }
+
+.cronometro {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--azul);
+}
+
+.cronometro-urgente {
+  color: var(--vermelho);
+}

@@ -111,9 +111,12 @@ A interface usa uma tela compartilhada. A API deve enviar a carta secreta apenas
 ## Relógio e avaliação final
 
 `duracao_segundos` informa o tempo total desde o início até agora ou até a data
-persistida de encerramento. Não há limite por rodada nem descarte por tempo.
+persistida de encerramento. Há 120 segundos para o palpite após a dica; a fase de dica não tem limite.
+Ao esgotar o prazo, a carta é descartada e soma um erro.
 Na fase final, `desempenho` traz `classificacao` (faixas do Expresso), `concluida`,
-`cartas_restantes` e `total_cartas`. Não há limite ou comparação de tempo;
+`cartas_restantes` e `total_cartas`. O tempo total não limita nem altera a classificação;
 uma interrupção é mostrada como resultado parcial.
 Veja as fontes e a diferença entre as regras oficiais e a adaptação web no README
-da raiz. `POST /partida/<id>/tempo` continua aceito como consulta sem efeitos.
+da raiz. `tempo_restante` é null fora do palpite e de 0 a 120 durante essa fase.
+`POST /partida/<id>/tempo` recebe `{turno, fase}` e verifica a expiração, ignorando
+identificações de rodadas antigas. O frontend tenta novamente após falha HTTP.

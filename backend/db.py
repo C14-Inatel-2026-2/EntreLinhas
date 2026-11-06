@@ -2,6 +2,7 @@ import sqlite3
 import json
 import os
 import random
+import time
 from datetime import datetime
 
 from palavras import PALAVRAS_INICIAIS
@@ -66,6 +67,11 @@ def criar_tabelas(conn):
         if "palavras" not in colunas:
             conn.execute("ALTER TABLE estados_partida ADD COLUMN palavras TEXT NOT NULL "
                          "DEFAULT '[\"mar\", \"casa\", \"música\", \"noite\", \"festa\", \"viagem\"]'")
+        if "turno_inicio" not in colunas:
+            conn.execute("ALTER TABLE estados_partida ADD COLUMN turno_inicio REAL")
+        # Partidas existentes na fase de palpite recebem o prazo ao atualizar a aplicação.
+        conn.execute("UPDATE estados_partida SET turno_inicio = ? WHERE fase = 'palpite' AND turno_inicio IS NULL", (time.time(),))
+
 
 def criar_partida(conn, num_jogadores):
     data_inicio = datetime.now().isoformat()
@@ -129,8 +135,8 @@ def consultar_estado(conn, partida_id):
 def atualizar_estado(conn, partida_id, indice, fase, dica=None):
     with conn:
         conn.execute(
-            "UPDATE estados_partida SET indice = ?, fase = ?, dica = ? WHERE partida_id = ?",
-            (indice, fase, dica, partida_id),
+            "UPDATE estados_partida SET indice = ?, fase = ?, dica = ?, turno_inicio = ? WHERE partida_id = ?",
+            (indice, fase, dica, time.time() if fase == "palpite" else None, partida_id),
         )
 
 

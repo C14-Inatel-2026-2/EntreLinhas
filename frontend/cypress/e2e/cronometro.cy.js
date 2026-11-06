@@ -31,7 +31,7 @@ describe("Tempo livre da partida e desempenho", () => {
     cy.tick(3600000);
     cy.get("#tempo-total").should("contain.text", "61:05");
     cy.get("#dica").should("have.value", "ponte");
-    cy.get("#cronometro").should("not.exist");
+    cy.get("#cronometro").should("not.be.visible");
     cy.get("@tempo.all").should("have.length", 0);
     cy.get("#erros").should("have.text", "0");
     cy.get("#resultado-palpite").should("not.be.visible");
@@ -83,5 +83,42 @@ describe("Tempo livre da partida e desempenho", () => {
     cy.get("#classificacao-final").should("have.text", "Resultado parcial: Bom");
     cy.get("#cartas-restantes").should("contain.text", "3 de 9");
     cy.get("#ritmo-final").should("not.exist");
+  });
+
+  [false, true].forEach((falhaInicial) => {
+    it(`limita o palpite a dois minutos e recupera falha HTTP: ${falhaInicial}`, function () {
+      let chamadas = 0;
+      cy.intercept("POST", `${rota}/tempo`, (req) => {
+        chamadas += 1;
+        req.reply(falhaInicial && chamadas === 1
+          ? {statusCode: 500, body: {erro: "Falha temporária"}}
+          : {body: {...this.base, turno: 1, tempo_restante: null, duracao_segundos: 120,
+              mensagem: "Tempo esgotado! A carta foi descartada.", placar: {acertos: 0, erros: 1}}});
+      }).as("expirar");
+      iniciar({...this.base, turno: 0, fase: "palpite", carta_secreta: null, dica: "ponte", tempo_restante: 120, duracao_segundos: 0});
+      cy.get("#cronometro").should("contain.text", "02:00");
+      if (!falhaInicial) {
+        [[1280, 900, "desktop"], [390, 844, "celular"]].forEach(([largura, altura, nome]) => {
+          cy.viewport(largura, altura);
+          cy.document().then((doc) => expect(doc.documentElement.scrollWidth).to.be.at.most(largura));
+          cy.screenshot(`dois-relogios-${nome}`, {capture: "fullPage"});
+        });
+      }
+      cy.tick(119000);
+      cy.get("#cronometro").should("contain.text", "00:01");
+      cy.get("#tempo-total").should("contain.text", "01:59");
+      cy.get("@expirar.all").should("have.length", 0);
+      cy.tick(1000);
+      cy.wait("@expirar").its("request.body").should("deep.equal", {turno: 0, fase: "palpite"});
+      if (falhaInicial) {
+        cy.get("#erro").should("be.visible");
+        cy.tick(2000);
+        cy.wait("@expirar");
+      }
+      cy.get("#titulo-palpite").should("have.text", "Tempo esgotado!");
+      cy.get("#erros").should("have.text", "1");
+      cy.get("#cronometro").should("not.be.visible");
+      cy.get("#tempo-total").should("contain.text", "02:00");
+    });
   });
 });
