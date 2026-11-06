@@ -222,3 +222,14 @@
 .cronometro-urgente {
   color: var(--vermelho);
 }
+
+.resumo-partida {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.resumo-partida .tempo-total {
+  margin: 0;
+}
