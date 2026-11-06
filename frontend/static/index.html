@@ -33,7 +33,7 @@
             <input id="jogadores" name="jogadores" type="number" min="2" max="6" value="2" required inputmode="numeric">
             <button type="submit">Iniciar Partida <span aria-hidden="true">→</span></button>
           </div>
-          <p class="ajuda">Todo mundo no mesmo time. Cada ideia conta!</p>
+          <p class="ajuda">Todo mundo no mesmo time. Dicas no seu tempo. Dois minutos para adivinhar.</p>
         </form>
       </div>
       <aside class="ilustracao" aria-label="Exemplo: mar e viagem se conectam pela dica cruzeiro">
@@ -67,8 +67,8 @@
     </section>
 
     <section id="tela-jogo" class="tela" aria-labelledby="titulo-jogo" hidden>
-      <div class="topo-jogo"><div><p id="tempo-total" class="tempo-total" role="timer" hidden></p><p class="sobretitulo">CADA DICA APROXIMA O TIME</p><h1 id="titulo-jogo" tabindex="-1">Vamos conectar?</h1><div id="turno" class="turno-destaque" role="status"><strong id="nome-turno" class="resumo-turno"></strong><ul id="jogadores-turno" class="jogadores-turno" aria-label="Vez dos jogadores"></ul><p id="acao-turno"></p><p id="cronometro" class="cronometro" role="timer" hidden></p></div></div>
-        <div class="placar" aria-label="Placar" aria-live="polite"><span class="acertos"><strong id="acertos">0</strong> acertos</span><span class="erros"><strong id="erros">0</strong> erros</span></div>
+      <div class="topo-jogo"><div><p class="sobretitulo">CADA DICA APROXIMA O TIME</p><h1 id="titulo-jogo" tabindex="-1">Vamos conectar?</h1><div id="turno" class="turno-destaque" role="status"><strong id="nome-turno" class="resumo-turno"></strong><ul id="jogadores-turno" class="jogadores-turno" aria-label="Vez dos jogadores"></ul><p id="acao-turno"></p><p id="cronometro" class="cronometro" role="timer" aria-label="Tempo restante para adivinhar" hidden></p></div></div>
+        <div class="resumo-partida"><div class="placar" aria-label="Placar" aria-live="polite"><span class="acertos"><strong id="acertos">0</strong> acertos</span><span class="erros"><strong id="erros">0</strong> erros</span></div><p id="tempo-total" class="tempo-total" role="timer" aria-label="Tempo total de partida" hidden></p></div>
       </div>
       <div class="area-jogo">
         <div class="painel painel-tabuleiro"><div class="legenda-tabuleiro"><h2>O tabuleiro da turma</h2><span>Letra + número</span></div><div class="rolagem-tabuleiro" tabindex="0" role="region" aria-label="Tabuleiro, role horizontalmente se necessário"><div id="tabuleiro" class="tabuleiro" role="table" aria-label="Palavras por linha e coluna"></div></div><p class="ajuda">Cliquem na célula onde vocês acham que a dica se encaixa.</p></div>
@@ -94,7 +94,12 @@
 
     <section id="tela-final" class="tela encerramento" aria-labelledby="titulo-final" hidden>
       <span class="emblema-final" aria-hidden="true">✦</span><p class="sobretitulo">CADA CONEXÃO FOI UMA CONQUISTA</p><h1 id="titulo-final" tabindex="-1">Boas ideias, <span>bom time!</span></h1><p>A partida terminou. Olha o que vocês construíram juntos:</p>
-      <div class="placar placar-final"><span class="acertos"><strong id="acertos-finais">0</strong> acertos</span><span class="erros"><strong id="erros-finais">0</strong> erros</span></div><p id="resumo-final"></p><p id="duracao-final" class="duracao-final"></p><button id="jogar-novamente" type="button">Jogar Novamente <span aria-hidden="true">↗</span></button>
+      <div class="placar placar-final"><span class="acertos"><strong id="acertos-finais">0</strong> acertos</span><span class="erros"><strong id="erros-finais">0</strong> erros</span></div><p id="resumo-final"></p><p id="duracao-final" class="duracao-final"></p>
+      <section id="desempenho-final" class="desempenho-final" aria-labelledby="classificacao-final" hidden>
+        <h2 id="classificacao-final"></h2>
+        <p id="cartas-restantes"></p>
+        <p class="ajuda">Classificação por acertos: 0–3 Fracasso · 4–5 Mediano · 6–7 Bom · 8–9 Espetacular.</p>
+      </section><button id="jogar-novamente" type="button">Jogar Novamente <span aria-hidden="true">↗</span></button>
     </section>
     <noscript><p class="erro">Ative o JavaScript no navegador para jogar Entre Linhas.</p></noscript>
   </main>

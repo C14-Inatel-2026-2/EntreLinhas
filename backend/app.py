@@ -94,11 +94,12 @@ def _penalizar_tempo(conn, partida, progresso):
     if fase == "final":
         pontuacao = sum(j["acertou"] for j in consultar_jogadas(conn, partida["id"]))
         finalizar_partida(conn, partida["id"], pontuacao)
+        partida = consultar_partida(conn, partida["id"])
     progresso = consultar_estado(conn, partida["id"])
     jogadas = consultar_jogadas(conn, partida["id"])
     return jsonify(montar_estado(partida, progresso, jogadas,
                                  "Tempo esgotado! A carta foi descartada.")), 200
-    
+
 @app.route("/partida/<int:partida_id>/dica", methods=["POST"])
 def rota_dica(partida_id):
     conn = conectar_bd()
@@ -109,8 +110,6 @@ def rota_dica(partida_id):
             return jsonify({"erro": "Partida não encontrada"}), 404
         if progresso["fase"] != "dica":
             return jsonify({"erro": "Não é a vez de enviar uma dica"}), 409
-        if tempo_esgotado(progresso):
-            return _penalizar_tempo(conn, partida, progresso)
         data = request.get_json(silent=True) or {}
         if not isinstance(data, dict):
             return jsonify({"erro": "A dica deve ter uma única palavra de até 60 caracteres"}), 400
@@ -137,6 +136,7 @@ def rota_encerrar_partida(partida_id):
         if progresso["fase"] != "final":
             pontuacao = sum(jogada["acertou"] for jogada in jogadas)
             finalizar_partida(conn, partida_id, pontuacao)
+            partida = consultar_partida(conn, partida_id)
             progresso = consultar_estado(conn, partida_id)
         return jsonify(montar_estado(partida, progresso, jogadas)), 200
     finally:
@@ -161,7 +161,7 @@ def rota_palpite(partida_id):
             return _penalizar_tempo(conn, partida, progresso)
         if not isinstance(palpite, str) or palpite not in progresso["cartas"]:
             return jsonify({"erro": "Coordenada inválida"}), 400
-        
+
         jogadas = consultar_jogadas(conn, partida_id)
         acertos = {jogada["coordenada_correta"] for jogada in jogadas if jogada["acertou"]}
         if palpite in acertos:
@@ -177,6 +177,7 @@ def rota_palpite(partida_id):
         if fase == "final":
             pontuacao = sum(jogada["acertou"] for jogada in consultar_jogadas(conn, partida_id))
             finalizar_partida(conn, partida_id, pontuacao)
+            partida = consultar_partida(conn, partida_id)
         progresso = consultar_estado(conn, partida_id)
         mensagem = "Palpite correto!" if acertou else "Palpite incorreto!"
         return jsonify(montar_estado(partida, progresso, consultar_jogadas(conn, partida_id), mensagem)), 200
@@ -185,6 +186,7 @@ def rota_palpite(partida_id):
 
 @app.route("/partida/<int:partida_id>/tempo", methods=["POST"])
 def rota_tempo(partida_id):
+    """Aplica expiração somente ao palpite que o cliente está exibindo."""
     conn = conectar_bd()
     try:
         partida = consultar_partida(conn, partida_id)
@@ -193,7 +195,6 @@ def rota_tempo(partida_id):
             return jsonify({"erro": "Partida não encontrada"}), 404
         corpo = request.get_json(silent=True)
         corpo = corpo if isinstance(corpo, dict) else {}
-        # Só penaliza o turno/fase que o cliente viu; um pedido antigo não pune o turno novo.
         mesmo_turno = (corpo.get("turno") in (None, progresso["indice"])
                        and corpo.get("fase") in (None, progresso["fase"]))
         if mesmo_turno and tempo_esgotado(progresso):

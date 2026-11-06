@@ -37,6 +37,44 @@ Para jogar:
 4. Confira o feedback de acerto ou erro e acompanhe a troca de turno e o placar.
 5. Complete as nove rodadas ou encerre antecipadamente, preservando o resultado.
 
+## Tempo de partida e desempenho
+
+O relógio conta o **tempo total decorrido**, sem limite de duração da partida. Após
+o envio da dica, o time tem **2 minutos para adivinhar**. Ao esgotar esse prazo,
+a carta é descartada, soma um erro e o jogo avança para a próxima rodada. A fase
+de dica não tem limite. Continua durante os diálogos e as trocas de turno; para
+no encerramento e o resultado usa a data de término persistida no SQLite.
+
+No final, a API retorna `duracao_segundos` e `desempenho`. A avaliação do tabuleiro
+web 3 × 3 segue as faixas oficiais do modo **Expresso**:
+
+| Acertos (de 9) | Classificação |
+| --- | --- |
+| 0–3 | Fracasso |
+| 4–5 | Mediano |
+| 6–7 | Bom |
+| 8–9 | Espetacular |
+
+A duração é mostrada apenas como informação, sem limite, comparação com tempo
+alvo ou efeito na classificação. No encerramento antecipado, o resultado é
+identificado como **parcial**, com as cartas não jogadas.
+
+Fonte: [página oficial da PaperGames](https://papergames.com.br/entre-linhas/) e
+[manual brasileiro, Regras v1.0, páginas 3 e 6](https://comparajogos-forum.s3.dualstack.sa-east-1.amazonaws.com/uploads/original/2X/6/6005a7acc0eed14f06f6d5406857c4c6123b1651.pdf).
+O [atalho oficial do manual](https://ppgam.es/entre-linhas-regras) direciona ao
+OneDrive; o PDF acima é uma cópia pública do manual da editora. **Adaptação web:**
+o tempo total é livre; o limite de 2 minutos por palpite é uma regra da versão
+web, sem relação com a pontuação oficial por acertos. Apenas a tabela por acertos
+é usada na avaliação. O fluxo web
+permanece em turnos, diferente do jogo físico simultâneo.
+
+`POST /partida/<id>/tempo` verifica o prazo e aplica o descarte quando necessário.
+O frontend envia `turno` e `fase` para que pedidos antigos não penalizem a rodada
+seguinte; em falha HTTP, há nova tentativa automática. O início da fase de palpite
+fica em `turno_inicio` no SQLite. Bancos existentes são migrados sem apagar
+partidas; palpites antigos sem início registrado recebem dois minutos na migração.
+
+
 ## Tecnologias
 
 - **Linguagem:** Python 3

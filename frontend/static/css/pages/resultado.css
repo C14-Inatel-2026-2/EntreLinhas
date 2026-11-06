@@ -32,3 +32,20 @@
 .placar-final strong {
   font-size: 50px;
 }
+
+.desempenho-final {
+  margin: 24px 0 32px;
+  padding: 24px 0;
+  border-block: 1px solid var(--azul);
+}
+
+.desempenho-final h2 {
+  color: var(--azul);
+  font-size: clamp(28px, 5vw, 40px);
+  margin: 0 0 12px;
+}
+
+.desempenho-final p {
+  max-width: 60ch;
+  margin: 10px auto;
+}

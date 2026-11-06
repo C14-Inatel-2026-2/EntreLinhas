@@ -8,10 +8,10 @@ let partida = null;
 let ocupado = false;
 let telaAtual = "tela-inicial";
 let nomesJogadores = [];
-let intervaloTempo = null;
 let intervaloTotal = null;
+let intervaloTempo = null;
 let timerExpiracao = null;
-let chaveTurno = null; // "partida:turno:fase" que está na tela
+let chaveTurno = null;
 
 function definirLoading(valor) {
   ocupado = valor;
@@ -33,12 +33,12 @@ async function executarAcao(acao) {
   } catch (erro) {
     elemento("erro").textContent = erro.message || "Algo deu errado. Tente novamente.";
     elemento("erro").hidden = false;
-    } finally {
-      definirLoading(false);
-      if (sucesso) focarTela();
-      else if (focoAnterior && !focoAnterior.closest("[hidden]")) focoAnterior.focus();
-    }
-    return sucesso;
+  } finally {
+    definirLoading(false);
+    if (sucesso) focarTela();
+    else if (focoAnterior && !focoAnterior.closest("[hidden]")) focoAnterior.focus();
+  }
+  return sucesso;
 }
 
 function mostrarTela(id) {
@@ -187,7 +187,7 @@ function iniciarTempoTotal(segundos) {
   if (segundos == null) { rotulo.hidden = true; return; }
   const inicio = Date.now() - segundos * 1000; // ressincroniza com o servidor a cada render
   const atualizar = () => {
-    rotulo.textContent = `Tempo de partida: ${formatarDuracao(Math.floor((Date.now() - inicio) / 1000))}`;
+    rotulo.textContent = `⏱ ${formatarDuracao(Math.floor((Date.now() - inicio) / 1000))}`;
   };
   rotulo.hidden = false;
   atualizar();
@@ -208,21 +208,21 @@ function agendarExpiracao(ms, chave, falhas = 0) {
   timerExpiracao = setTimeout(() => estourarTempo(chave, falhas), Math.max(0, ms));
 }
 
-function iniciarCronometro(segundos, expiraEm) {
+function iniciarCronometro(segundos) {
   pararCronometro();
   if (segundos == null) return;
   const fim = Date.now() + segundos * 1000;
   const rotulo = elemento("cronometro");
   const atualizar = () => {
     const restante = Math.max(0, Math.ceil((fim - Date.now()) / 1000));
-    rotulo.textContent = `⏱ ${restante}s`;
+    rotulo.textContent = `Para adivinhar: ${formatarDuracao(restante)}`;
     rotulo.classList.toggle("cronometro-urgente", restante <= 10);
     if (restante === 0) clearInterval(intervaloTempo); // só para o visor; o descarte é agendado abaixo
   };
   rotulo.hidden = false;
   intervaloTempo = setInterval(atualizar, 250);
   atualizar();
-  agendarExpiracao((expiraEm ?? segundos) * 1000, chaveTurno); // dispara só depois da tolerância
+  agendarExpiracao(segundos * 1000, chaveTurno); // prazo de dois minutos após a dica
 }
 
 async function estourarTempo(chave, falhas = 0) {
@@ -239,7 +239,7 @@ async function estourarTempo(chave, falhas = 0) {
       renderizarPartida(dados);
       return;
     }
-    espera = Math.max(1, dados.expira_em ?? 1) * 1000;       // ainda na tolerância: espera, sem laço
+    espera = Math.max(1, dados.tempo_restante ?? 1) * 1000;       // ressincroniza sem chamadas em ciclo
   });
   if (resolvido || chave !== chaveTurno) return;
   if (sucesso) agendarExpiracao(espera, chave);
@@ -284,13 +284,14 @@ function renderizarPartida(dados) {
   elemento("resumo-final").textContent = dados.resumo || "Obrigado por jogar em equipe!";
   elemento("form-dica").reset();
   elemento("form-palpite").reset();
-  chaveTurno = dados.fase === "final" ? null : chaveDoTurno(dados);
-  iniciarCronometro(dados.tempo_restante, dados.expira_em);
+  chaveTurno = dados.fase === "palpite" ? chaveDoTurno(dados) : null;
+  iniciarCronometro(dados.tempo_restante);
   iniciarTempoTotal(dados.fase === "final" ? null : dados.duracao_segundos);
   elemento("duracao-final").textContent = dados.fase === "final" && dados.duracao_segundos != null
     ? `A partida durou ${formatarDuracao(dados.duracao_segundos)}.`
     : "";
   mostrarTela(dados.fase === "final" ? "tela-final" : "tela-jogo");
+  mostrarDesempenho(dados.desempenho);
   if (dados.mensagem?.startsWith("Tempo esgotado")) mostrarTempoEsgotado();
 }
 
@@ -368,6 +369,17 @@ function mostrarResultadoPalpite(acertou) {
     : "Essa não era a coordenada. A carta foi descartada, mas cada ideia conta!";
   elemento("continuar-palpite").textContent = partida.fase === "final" ? "Ver resultado" : "Continuar";
   popup.showModal();
+}
+
+function mostrarDesempenho(desempenho) {
+  const resultado = elemento("desempenho-final");
+  resultado.hidden = !desempenho;
+  if (!desempenho) return;
+  elemento("classificacao-final").textContent = desempenho.concluida
+    ? desempenho.classificacao : `Resultado parcial: ${desempenho.classificacao}`;
+  elemento("cartas-restantes").textContent = desempenho.cartas_restantes
+    ? `${desempenho.cartas_restantes} de ${desempenho.total_cartas} cartas ficaram sem jogar.`
+    : `Todas as ${desempenho.total_cartas} cartas foram jogadas.`;
 }
 
 function mostrarTempoEsgotado() {

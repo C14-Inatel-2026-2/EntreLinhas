@@ -1,8 +1,7 @@
 """Regras e representação da partida consumida pela interface web."""
 
-import time
 import math
-
+import time
 from datetime import datetime
 from src.Baralho import Baralho
 
@@ -10,9 +9,6 @@ from src.Baralho import Baralho
 LINHAS = ("A", "B", "C")
 COLUNAS = ("1", "2", "3")
 
-TEMPO_DICA = 60
-TEMPO_PALPITE = 30 
-TOLERANCIA = 2
 
 def criar_cartas():
     baralho = Baralho(LINHAS, COLUNAS)
@@ -26,18 +22,20 @@ def jogador_da_rodada(partida, progresso):
         return ordem[min(progresso["indice"], len(ordem) - 1)]
     return progresso["indice"] % partida["num_jogadores"] + 1
 
+TEMPO_PALPITE = 120
+
+
 def segundos_restantes(progresso):
-    """None = sem cronómetro (partida antiga ou fase final)."""
     inicio = progresso.get("turno_inicio")
-    if inicio is None or progresso["fase"] not in ("dica", "palpite"):
+    if progresso["fase"] != "palpite" or inicio is None:
         return None
-    limite = TEMPO_DICA if progresso["fase"] == "dica" else TEMPO_PALPITE
-    return limite - (time.time() - inicio)
+    return TEMPO_PALPITE - (time.time() - inicio)
 
 
 def tempo_esgotado(progresso):
     restante = segundos_restantes(progresso)
-    return restante is not None and restante < -TOLERANCIA
+    return restante is not None and restante <= 0
+
 
 def duracao_segundos(partida):
     if not partida.get("data_inicio"):
@@ -46,12 +44,31 @@ def duracao_segundos(partida):
     fim = datetime.fromisoformat(partida["data_fim"]) if partida.get("data_fim") else datetime.now()
     return max(0, int((fim - inicio).total_seconds()))
 
+def avaliar_desempenho(acertos, jogadas, total_cartas):
+    """Faixas oficiais do Expresso, determinadas apenas pelos acertos."""
+    if acertos < 4:
+        classificacao = "Fracasso"
+    elif acertos < 6:
+        classificacao = "Mediano"
+    elif acertos < 8:
+        classificacao = "Bom"
+    else:
+        classificacao = "Espetacular"
+    return {
+        "classificacao": classificacao,
+        "concluida": jogadas == total_cartas,
+        "cartas_restantes": total_cartas - jogadas,
+        "total_cartas": total_cartas,
+    }
+
+
 def montar_estado(partida, progresso, jogadas, mensagem=None):
     acertos = {jogada["coordenada_correta"] for jogada in jogadas if jogada["acertou"]}
     placar = {"acertos": len(acertos), "erros": len(jogadas) - len(acertos)}
     cartas = progresso["cartas"]
     indice = progresso["indice"]
     fase = progresso["fase"]
+    duracao = duracao_segundos(partida)
     restante = segundos_restantes(progresso)
 
     estado = {
@@ -71,14 +88,14 @@ def montar_estado(partida, progresso, jogadas, mensagem=None):
             ],
         },
         "placar": placar,
-        "tempo_restante": None if restante is None else max(0, math.ceil(restante)),
-        "expira_em": None if restante is None else max(0, math.ceil(restante + TOLERANCIA)),
         "turno": progresso["indice"],
-        "duracao_segundos": duracao_segundos(partida),
+        "duracao_segundos": duracao,
+        "tempo_restante": None if restante is None else max(0, math.ceil(restante)),
     }
     if mensagem:
         estado["mensagem"] = mensagem
     if fase == "final":
+        estado["desempenho"] = avaliar_desempenho(placar["acertos"], len(jogadas), len(cartas))
         estado["resumo"] = (
             f"Partida encerrada: {placar['acertos']} cartas posicionadas "
             f"e {placar['erros']} descartadas."

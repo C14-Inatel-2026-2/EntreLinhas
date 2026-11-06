@@ -1,4 +1,4 @@
-"""Testes do cronômetro por turno e do tempo total da partida."""
+"""Tempo total livre e avaliação do modo Expresso (3 × 3)."""
 from datetime import datetime
 from unittest.mock import patch
 
@@ -6,7 +6,7 @@ import pytest
 
 import app as modulo_api
 from db import conectar_bd, criar_tabelas
-from jogo import TEMPO_DICA, TEMPO_PALPITE, TOLERANCIA, duracao_segundos, tempo_esgotado
+from jogo import avaliar_desempenho, duracao_segundos
 
 
 @pytest.fixture
@@ -21,55 +21,120 @@ def cliente(tmp_path, monkeypatch):
         yield cliente_flask
 
 
-def partida_em(cliente, fase, segundos):
-    """Cria a partida na fase pedida e recua o início do turno em `segundos` (sem sleep)."""
-    estado = cliente.post("/partida", json={"num_jogadores": 2}).get_json()
-    if fase == "palpite":
-        cliente.post(f"/partida/{estado['id']}/dica", json={"dica": "ponte"})
-    conn = modulo_api.conectar_bd()
-    with conn:
-        conn.execute("UPDATE estados_partida SET turno_inicio = turno_inicio - ? WHERE partida_id = ?",
-                     (segundos, estado["id"]))
-    conn.close()
-    return estado
-
-
-def test_tempo_esgotado_respeita_limite_e_tolerancia():
-    """Com MOCK do relógio: dentro da tolerância ainda vale; depois dela, esgotou."""
-    progresso = {"fase": "dica", "turno_inicio": 1000.0}
-    with patch("jogo.time") as relogio:
-        relogio.time.return_value = 1000.0 + TEMPO_DICA + TOLERANCIA
-        assert tempo_esgotado(progresso) is False
-        relogio.time.return_value = 1000.0 + TEMPO_DICA + TOLERANCIA + 0.1
-        assert tempo_esgotado(progresso) is True
-        assert tempo_esgotado({"fase": "final", "turno_inicio": 1000.0}) is False
-
-
-def test_duracao_da_partida_usa_agora_simulado():
-    """Com MOCK de datetime.now(): 10:00:00 -> 10:03:25 são 205 segundos."""
+def test_duracao_total_e_fixa_apos_finalizar():
     partida = {"data_inicio": "2026-11-05T10:00:00", "data_fim": None}
     with patch("jogo.datetime", wraps=datetime) as falso:
         falso.now.return_value = datetime(2026, 11, 5, 10, 3, 25)
         assert duracao_segundos(partida) == 205
+        partida["data_fim"] = "2026-11-05T10:03:25"
+        falso.now.return_value = datetime(2026, 11, 6)
+        assert duracao_segundos(partida) == 205
 
 
-@pytest.mark.parametrize("rota, fase", [("dica", "dica"), ("tempo", "dica"),
-                                         ("palpite", "palpite"), ("tempo", "palpite")])
-def test_as_tres_rotas_usam_a_mesma_regra_de_expiracao(cliente, rota, fase):
-    limite = TEMPO_DICA if fase == "dica" else TEMPO_PALPITE
-    for segundos, deve_penalizar in [(limite + TOLERANCIA - 1, False), (limite + TOLERANCIA + 1, True)]:
-        estado = partida_em(cliente, fase, segundos)
-        corpo = {"dica": {"dica": "ponte"}, "palpite": {"palpite": estado["carta_secreta"]}, "tempo": {}}[rota]
-        novo = cliente.post(f"/partida/{estado['id']}/{rota}", json=corpo).get_json()
-        assert novo["placar"]["erros"] == (1 if deve_penalizar else 0), (rota, fase, segundos)
-        assert novo.get("mensagem", "").startswith("Tempo esgotado") is deve_penalizar
+@pytest.mark.parametrize("acertos,classe", [
+    (0, "Fracasso"), (3, "Fracasso"), (4, "Mediano"), (5, "Mediano"),
+    (6, "Bom"), (7, "Bom"), (8, "Espetacular"), (9, "Espetacular"),
+])
+def test_classificacao_oficial_depende_apenas_dos_acertos(acertos, classe):
+    resultado = avaliar_desempenho(acertos, 9, 9)
+    assert resultado["classificacao"] == classe
+    assert "dentro_referencia" not in resultado
+    assert "referencia_segundos" not in resultado
+    assert resultado["concluida"] is True
+    assert resultado["cartas_restantes"] == 0
 
 
-def test_tempo_ignora_turno_antigo_e_estado_expoe_turno_e_expira_em(cliente):
-    estado = partida_em(cliente, "dica", TEMPO_DICA + TOLERANCIA + 5)
-    rota = f"/partida/{estado['id']}/tempo"
-    antigo = cliente.post(rota, json={"turno": estado["turno"], "fase": "palpite"}).get_json()
-    assert antigo["placar"]["erros"] == 0 and antigo["expira_em"] == 0  # não puniu o turno errado
-    atual = cliente.post(rota, json={"turno": estado["turno"], "fase": "dica"}).get_json()
-    assert atual["placar"]["erros"] == 1 and atual["turno"] == estado["turno"] + 1
-    assert TEMPO_DICA + TOLERANCIA - 2 <= estado["expira_em"] <= TEMPO_DICA + TOLERANCIA
+def test_encerramento_antecipado_tem_avaliacao_parcial():
+    resultado = avaliar_desempenho(4, 5, 9)
+    assert resultado["classificacao"] == "Mediano"
+    assert resultado["concluida"] is False
+    assert resultado["cartas_restantes"] == 4
+
+
+def test_tempo_nao_descarta_cartas_nem_bloqueia_dica_ou_palpite(cliente):
+    estado = cliente.post("/partida", json={"num_jogadores": 2}).get_json()
+    rota = f"/partida/{estado['id']}"
+    # Simula muito tempo transcorrido, sem esperar nem alterar o relógio real.
+    with patch("jogo.datetime", wraps=datetime) as falso:
+        falso.now.return_value = datetime(2099, 1, 1)
+        for _ in range(2):
+            consulta = cliente.post(f"{rota}/tempo").get_json()
+            assert consulta["fase"] == "dica"
+            assert consulta["turno"] == 0
+            assert consulta["placar"] == {"acertos": 0, "erros": 0}
+        dica = cliente.post(f"{rota}/dica", json={"dica": "ponte"})
+        assert dica.status_code == 200
+        assert dica.get_json()["fase"] == "palpite"
+        assert cliente.post(f"{rota}/tempo").get_json()["fase"] == "palpite"
+        resposta = cliente.post(f"{rota}/palpite", json={"palpite": estado["carta_secreta"]})
+        assert resposta.status_code == 200
+        assert resposta.get_json()["placar"] == {"acertos": 1, "erros": 0}
+    assert "desempenho" not in dica.get_json()
+    assert dica.get_json()["tempo_restante"] == 120
+    assert "expira_em" not in dica.get_json()
+
+
+@pytest.mark.parametrize("natural", [True, False])
+def test_resultado_usa_data_final_persistida_e_nao_relogio_em_andamento(cliente, natural):
+    estado = cliente.post("/partida", json={"num_jogadores": 2}).get_json()
+    rota = f"/partida/{estado['id']}"
+    with patch("jogo.datetime", wraps=datetime) as falso:
+        # Um estado desatualizado de partida usaria este valor incorreto ao finalizar.
+        falso.now.return_value = datetime(2099, 1, 1)
+        if natural:
+            for _ in range(9):
+                cliente.post(f"{rota}/dica", json={"dica": "ponte"})
+                estado = cliente.post(f"{rota}/palpite", json={"palpite": estado["carta_secreta"]}).get_json()
+        else:
+            estado = cliente.post(f"{rota}/encerrar").get_json()
+        persistida = cliente.get(rota).get_json()
+        esperado = int((datetime.fromisoformat(persistida["data_fim"]) - datetime.fromisoformat(persistida["data_inicio"])).total_seconds())
+        assert estado["duracao_segundos"] == esperado
+        assert estado["desempenho"]["concluida"] is natural
+        assert estado["desempenho"]["classificacao"] == ("Espetacular" if natural else "Fracasso")
+        repetida = cliente.post(f"{rota}/encerrar").get_json()
+        consulta = cliente.post(f"{rota}/tempo").get_json()
+        assert repetida["duracao_segundos"] == consulta["duracao_segundos"] == esperado
+        assert repetida["desempenho"] == estado["desempenho"] == consulta["desempenho"]
+
+
+@pytest.mark.parametrize("segundos,expirou", [(119.999, False), (120, True), (121, True)])
+@pytest.mark.parametrize("endpoint", ["tempo", "palpite"])
+def test_palpite_tem_dois_minutos_apenas_apos_dica(cliente, segundos, expirou, endpoint):
+    with patch("jogo.time.time", return_value=1000):
+        estado = cliente.post("/partida", json={"num_jogadores": 2}).get_json()
+    rota = f"/partida/{estado['id']}"
+    with patch("jogo.time.time", return_value=5000):
+        assert cliente.post(f"{rota}/tempo").get_json()["placar"]["erros"] == 0
+        dica = cliente.post(f"{rota}/dica", json={"dica": "ponte"}).get_json()
+        assert dica["tempo_restante"] == 120
+    with patch("jogo.time.time", return_value=5000 + segundos):
+        resposta = cliente.post(f"{rota}/{endpoint}", json={"palpite": estado["carta_secreta"], "turno": 0, "fase": "palpite"})
+        assert resposta.status_code == 200
+        novo = resposta.get_json()
+        assert novo["placar"]["erros"] == int(expirou)
+        if expirou:
+            assert novo["turno"] == 1 and novo["fase"] == "dica"
+            assert novo["tempo_restante"] is None
+            repetida = cliente.post(f"{rota}/tempo", json={"turno": 0, "fase": "palpite"}).get_json()
+            assert repetida["placar"]["erros"] == 1
+            assert repetida["turno"] == 1
+        elif endpoint == "palpite":
+            assert novo["placar"]["acertos"] == 1
+
+
+def test_expiracao_da_ultima_carta_finaliza_e_preserva_duracao(cliente):
+    estado = cliente.post("/partida", json={"num_jogadores": 2}).get_json()
+    rota = f"/partida/{estado['id']}"
+    for _ in range(8):
+        cliente.post(f"{rota}/dica", json={"dica": "ponte"})
+        estado = cliente.post(f"{rota}/palpite", json={"palpite": estado["carta_secreta"]}).get_json()
+    with patch("jogo.time.time", return_value=1000):
+        cliente.post(f"{rota}/dica", json={"dica": "ponte"})
+    with patch("jogo.time.time", return_value=1120):
+        final = cliente.post(f"{rota}/tempo", json={"turno": 8, "fase": "palpite"}).get_json()
+    assert final["fase"] == "final"
+    assert final["placar"] == {"acertos": 8, "erros": 1}
+    assert final["desempenho"]["classificacao"] == "Espetacular"
+    assert final["tempo_restante"] is None
+    assert cliente.post(f"{rota}/tempo").get_json()["duracao_segundos"] == final["duracao_segundos"]
