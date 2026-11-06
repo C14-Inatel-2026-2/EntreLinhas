@@ -5,7 +5,7 @@ from db import (
     conectar_bd, criar_tabelas, criar_partida, consultar_partida, salvar_jogada,
     criar_estado, consultar_estado, atualizar_estado, consultar_jogadas, finalizar_partida,
 )
-from jogo import criar_cartas, montar_estado, jogador_da_rodada, tempo_esgotado
+from jogo import criar_cartas, montar_estado, jogador_da_rodada
 
 app = Flask(
     __name__,
@@ -82,23 +82,6 @@ def rota_placar(partida_id):
     finally:
         conn.close()
 
-def _penalizar_tempo(conn, partida, progresso):
-    correta = progresso["cartas"][progresso["indice"]]
-    jogador = str(jogador_da_rodada(partida, progresso))
-    # coordenada_tentada=None -> salvar_jogada grava acertou=0
-    salvar_jogada(conn, partida["id"], jogador, progresso["dica"] or "(tempo esgotado)",
-                  correta, None, progresso["indice"] + 1)
-    novo_indice = progresso["indice"] + 1
-    fase = "final" if novo_indice == len(progresso["cartas"]) else "dica"
-    atualizar_estado(conn, partida["id"], novo_indice, fase)
-    if fase == "final":
-        pontuacao = sum(j["acertou"] for j in consultar_jogadas(conn, partida["id"]))
-        finalizar_partida(conn, partida["id"], pontuacao)
-    progresso = consultar_estado(conn, partida["id"])
-    jogadas = consultar_jogadas(conn, partida["id"])
-    return jsonify(montar_estado(partida, progresso, jogadas,
-                                 "Tempo esgotado! A carta foi descartada.")), 200
-    
 @app.route("/partida/<int:partida_id>/dica", methods=["POST"])
 def rota_dica(partida_id):
     conn = conectar_bd()
@@ -109,8 +92,6 @@ def rota_dica(partida_id):
             return jsonify({"erro": "Partida não encontrada"}), 404
         if progresso["fase"] != "dica":
             return jsonify({"erro": "Não é a vez de enviar uma dica"}), 409
-        if tempo_esgotado(progresso):
-            return _penalizar_tempo(conn, partida, progresso)
         data = request.get_json(silent=True) or {}
         if not isinstance(data, dict):
             return jsonify({"erro": "A dica deve ter uma única palavra de até 60 caracteres"}), 400
@@ -137,6 +118,7 @@ def rota_encerrar_partida(partida_id):
         if progresso["fase"] != "final":
             pontuacao = sum(jogada["acertou"] for jogada in jogadas)
             finalizar_partida(conn, partida_id, pontuacao)
+            partida = consultar_partida(conn, partida_id)
             progresso = consultar_estado(conn, partida_id)
         return jsonify(montar_estado(partida, progresso, jogadas)), 200
     finally:
@@ -157,8 +139,6 @@ def rota_palpite(partida_id):
         palpite = data.get("palpite")
         if progresso["fase"] != "palpite":
             return jsonify({"erro": "Não é a vez de enviar um palpite"}), 409
-        if tempo_esgotado(progresso):
-            return _penalizar_tempo(conn, partida, progresso)
         if not isinstance(palpite, str) or palpite not in progresso["cartas"]:
             return jsonify({"erro": "Coordenada inválida"}), 400
         
@@ -177,6 +157,7 @@ def rota_palpite(partida_id):
         if fase == "final":
             pontuacao = sum(jogada["acertou"] for jogada in consultar_jogadas(conn, partida_id))
             finalizar_partida(conn, partida_id, pontuacao)
+            partida = consultar_partida(conn, partida_id)
         progresso = consultar_estado(conn, partida_id)
         mensagem = "Palpite correto!" if acertou else "Palpite incorreto!"
         return jsonify(montar_estado(partida, progresso, consultar_jogadas(conn, partida_id), mensagem)), 200
@@ -185,19 +166,13 @@ def rota_palpite(partida_id):
 
 @app.route("/partida/<int:partida_id>/tempo", methods=["POST"])
 def rota_tempo(partida_id):
+    """Compatibilidade com clientes antigos: consulta sem descartar cartas."""
     conn = conectar_bd()
     try:
         partida = consultar_partida(conn, partida_id)
         progresso = consultar_estado(conn, partida_id)
         if not partida or not progresso:
             return jsonify({"erro": "Partida não encontrada"}), 404
-        corpo = request.get_json(silent=True)
-        corpo = corpo if isinstance(corpo, dict) else {}
-        # Só penaliza o turno/fase que o cliente viu; um pedido antigo não pune o turno novo.
-        mesmo_turno = (corpo.get("turno") in (None, progresso["indice"])
-                       and corpo.get("fase") in (None, progresso["fase"]))
-        if mesmo_turno and tempo_esgotado(progresso):
-            return _penalizar_tempo(conn, partida, progresso)
         return jsonify(montar_estado(partida, progresso, consultar_jogadas(conn, partida_id))), 200
     finally:
         conn.close()

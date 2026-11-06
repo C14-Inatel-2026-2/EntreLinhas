@@ -71,6 +71,10 @@ describe("Interface integrada à API real", () => {
     }
     cy.get("#tela-final").should("be.visible");
     cy.get("#acertos-finais").should("have.text", "9");
+    cy.get("#classificacao-final").should("have.text", "Espetacular");
+    cy.get("#ritmo-final").should("contain.text", "em até 5 minutos");
+    cy.get("#cartas-restantes").should("contain.text", "Todas as 9");
+    cy.get("#duracao-final").should("contain.text", "A partida durou");
     cy.get("#erros-finais").should("have.text", "0");
     cy.get("#resultado-palpite").should("not.be.visible");
   });

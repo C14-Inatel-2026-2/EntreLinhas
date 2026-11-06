@@ -37,6 +37,42 @@ Para jogar:
 4. Confira o feedback de acerto ou erro e acompanhe a troca de turno e o placar.
 5. Complete as nove rodadas ou encerre antecipadamente, preservando o resultado.
 
+## Tempo de partida e desempenho
+
+O relógio conta o **tempo total decorrido**, sem limite por carta ou fase e sem
+penalidades por demora. Continua durante os diálogos e as trocas de turno; para
+no encerramento e o resultado usa a data de término persistida no SQLite.
+
+No final, a API retorna `duracao_segundos` e `desempenho`. A avaliação do tabuleiro
+web 3 × 3 segue as faixas oficiais do modo **Expresso**:
+
+| Acertos (de 9) | Classificação |
+| --- | --- |
+| 0–3 | Fracasso |
+| 4–5 | Mediano |
+| 6–7 | Bom |
+| 8–9 | Espetacular |
+
+O resultado também indica se a conclusão ocorreu em até **5 minutos** ou acima
+dessa referência. O tempo não altera a classificação por acertos. No encerramento
+antecipado, o resultado é identificado como **parcial**, com as cartas não jogadas;
+uma partida interrompida não recebe a mensagem de conclusão em até 5 minutos.
+
+Fonte: [página oficial da PaperGames](https://papergames.com.br/entre-linhas/) e
+[manual brasileiro, Regras v1.0, páginas 3 e 6](https://comparajogos-forum.s3.dualstack.sa-east-1.amazonaws.com/uploads/original/2X/6/6005a7acc0eed14f06f6d5406857c4c6123b1651.pdf).
+O [atalho oficial do manual](https://ppgam.es/entre-linhas-regras) direciona ao
+OneDrive; o PDF acima é uma cópia pública do manual da editora. O manual oferece
+controle **opcional** de 5 minutos no Expresso/Clássico e 10 no Expert, para a
+partida inteira. **Adaptação web:** o tempo é livre e os 5 minutos servem somente
+como referência de ritmo, sem encerramento automático nem pontuação extra por
+velocidade. A classificação por tempo não é uma regra oficial; a tabela por
+acertos é. O fluxo web permanece em turnos, diferente do jogo físico simultâneo.
+
+`POST /partida/<id>/tempo` permanece como consulta sem efeitos para compatibilidade
+com clientes antigos; não descarta cartas. A interface não faz chamadas a essa
+rota. Colunas antigas de `turno_inicio`, quando presentes no banco, são ignoradas,
+sem apagar ou recriar as partidas existentes.
+
 ## Tecnologias
 
 - **Linguagem:** Python 3

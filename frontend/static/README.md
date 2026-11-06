@@ -107,3 +107,14 @@ O estado completo contém `id`, `fase` (`dica`, `palpite` ou `final`), `jogador_
 O tabuleiro contém `linhas` e `colunas` com `id` e `palavra`, além de `celulas` com `coordenada` e `estado` (`vazia` ou `acerto`).
 
 A interface usa uma tela compartilhada. A API deve enviar a carta secreta apenas na fase de dica. Uma versão em dispositivos separados também precisa de autenticação e filtragem dos dados privados no backend.
+
+## Relógio e avaliação final
+
+`duracao_segundos` informa o tempo total desde o início até agora ou até a data
+persistida de encerramento. Não há limite por rodada nem descarte por tempo.
+Na fase final, `desempenho` traz `classificacao` (faixas do Expresso), `concluida`,
+`cartas_restantes`, `total_cartas`, `referencia_segundos` (300) e
+`dentro_referencia` (booleano ou null se não houver duração). A comparação com
+5 minutos é informativa; uma interrupção é mostrada como resultado parcial.
+Veja as fontes e a diferença entre as regras oficiais e a adaptação web no README
+da raiz. `POST /partida/<id>/tempo` continua aceito como consulta sem efeitos.

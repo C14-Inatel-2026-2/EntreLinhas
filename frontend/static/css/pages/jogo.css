@@ -69,19 +69,6 @@
   color: var(--azul);
 }
 
-.cronometro { 
-  margin: 0;
- font-size: 32px; 
- font-weight: 700; 
- font-variant-numeric: 
- tabular-nums; 
- color: var(--verde); 
-}
-
-.cronometro-urgente { 
-  color: var(--vermelho); 
-}
-
 .tempo-total { 
   margin: 0 0 8px; 
   font-size: 24px; 
