@@ -72,6 +72,8 @@ def montar_estado(partida, progresso, jogadas, mensagem=None):
         },
         "placar": placar,
         "tempo_restante": None if restante is None else max(0, math.ceil(restante)),
+        "expira_em": None if restante is None else max(0, math.ceil(restante + TOLERANCIA)),
+        "turno": progresso["indice"],
         "duracao_segundos": duracao_segundos(partida),
     }
     if mensagem:

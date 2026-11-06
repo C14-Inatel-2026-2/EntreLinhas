@@ -1,3 +1,4 @@
+"""Testes do cronômetro por turno e do tempo total da partida."""
 from datetime import datetime
 from unittest.mock import patch
 
@@ -20,9 +21,11 @@ def cliente(tmp_path, monkeypatch):
         yield cliente_flask
 
 
-def iniciar_e_envelhecer(cliente, segundos):
-    """Cria a partida e recua o início do turno (simula `segundos` passados, sem sleep)."""
+def partida_em(cliente, fase, segundos):
+    """Cria a partida na fase pedida e recua o início do turno em `segundos` (sem sleep)."""
     estado = cliente.post("/partida", json={"num_jogadores": 2}).get_json()
+    if fase == "palpite":
+        cliente.post(f"/partida/{estado['id']}/dica", json={"dica": "ponte"})
     conn = modulo_api.conectar_bd()
     with conn:
         conn.execute("UPDATE estados_partida SET turno_inicio = turno_inicio - ? WHERE partida_id = ?",
@@ -50,29 +53,23 @@ def test_duracao_da_partida_usa_agora_simulado():
         assert duracao_segundos(partida) == 205
 
 
-def test_palpite_fora_do_tempo_conta_como_erro(cliente):
-    estado = iniciar_e_envelhecer(cliente, 0)
-    rota = f"/partida/{estado['id']}"
-    cliente.post(f"{rota}/dica", json={"dica": "ponte"})
-    conn = modulo_api.conectar_bd()
-    with conn:
-        conn.execute("UPDATE estados_partida SET turno_inicio = turno_inicio - ?",
-                     (TEMPO_PALPITE + TOLERANCIA + 5,))
-    conn.close()
-
-    resposta = cliente.post(f"{rota}/palpite", json={"palpite": estado["carta_secreta"]})  # certo, mas atrasado
-    assert resposta.status_code == 200
-    novo = resposta.get_json()
-    assert novo["mensagem"].startswith("Tempo esgotado")
-    assert novo["placar"] == {"acertos": 0, "erros": 1}
+@pytest.mark.parametrize("rota, fase", [("dica", "dica"), ("tempo", "dica"),
+                                         ("palpite", "palpite"), ("tempo", "palpite")])
+def test_as_tres_rotas_usam_a_mesma_regra_de_expiracao(cliente, rota, fase):
+    limite = TEMPO_DICA if fase == "dica" else TEMPO_PALPITE
+    for segundos, deve_penalizar in [(limite + TOLERANCIA - 1, False), (limite + TOLERANCIA + 1, True)]:
+        estado = partida_em(cliente, fase, segundos)
+        corpo = {"dica": {"dica": "ponte"}, "palpite": {"palpite": estado["carta_secreta"]}, "tempo": {}}[rota]
+        novo = cliente.post(f"/partida/{estado['id']}/{rota}", json=corpo).get_json()
+        assert novo["placar"]["erros"] == (1 if deve_penalizar else 0), (rota, fase, segundos)
+        assert novo.get("mensagem", "").startswith("Tempo esgotado") is deve_penalizar
 
 
-def test_rota_tempo_so_penaliza_depois_do_limite(cliente):
-    estado = iniciar_e_envelhecer(cliente, 10)
-    antes = cliente.post(f"/partida/{estado['id']}/tempo").get_json()
-    assert "mensagem" not in antes and antes["placar"]["erros"] == 0
-
-    estado = iniciar_e_envelhecer(cliente, TEMPO_DICA + 1)
-    depois = cliente.post(f"/partida/{estado['id']}/tempo").get_json()
-    assert depois["mensagem"].startswith("Tempo esgotado")
-    assert depois["placar"] == {"acertos": 0, "erros": 1}
+def test_tempo_ignora_turno_antigo_e_estado_expoe_turno_e_expira_em(cliente):
+    estado = partida_em(cliente, "dica", TEMPO_DICA + TOLERANCIA + 5)
+    rota = f"/partida/{estado['id']}/tempo"
+    antigo = cliente.post(rota, json={"turno": estado["turno"], "fase": "palpite"}).get_json()
+    assert antigo["placar"]["erros"] == 0 and antigo["expira_em"] == 0  # não puniu o turno errado
+    atual = cliente.post(rota, json={"turno": estado["turno"], "fase": "dica"}).get_json()
+    assert atual["placar"]["erros"] == 1 and atual["turno"] == estado["turno"] + 1
+    assert TEMPO_DICA + TOLERANCIA - 2 <= estado["expira_em"] <= TEMPO_DICA + TOLERANCIA

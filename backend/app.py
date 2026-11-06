@@ -5,7 +5,7 @@ from db import (
     conectar_bd, criar_tabelas, criar_partida, consultar_partida, salvar_jogada,
     criar_estado, consultar_estado, atualizar_estado, consultar_jogadas, finalizar_partida,
 )
-from jogo import criar_cartas, montar_estado, jogador_da_rodada, tempo_esgotado, segundos_restantes
+from jogo import criar_cartas, montar_estado, jogador_da_rodada, tempo_esgotado
 
 app = Flask(
     __name__,
@@ -191,8 +191,12 @@ def rota_tempo(partida_id):
         progresso = consultar_estado(conn, partida_id)
         if not partida or not progresso:
             return jsonify({"erro": "Partida não encontrada"}), 404
-        restante = segundos_restantes(progresso)
-        if restante is not None and restante <= 0:
+        corpo = request.get_json(silent=True)
+        corpo = corpo if isinstance(corpo, dict) else {}
+        # Só penaliza o turno/fase que o cliente viu; um pedido antigo não pune o turno novo.
+        mesmo_turno = (corpo.get("turno") in (None, progresso["indice"])
+                       and corpo.get("fase") in (None, progresso["fase"]))
+        if mesmo_turno and tempo_esgotado(progresso):
             return _penalizar_tempo(conn, partida, progresso)
         return jsonify(montar_estado(partida, progresso, consultar_jogadas(conn, partida_id))), 200
     finally:

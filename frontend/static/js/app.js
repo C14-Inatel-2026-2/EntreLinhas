@@ -10,6 +10,8 @@ let telaAtual = "tela-inicial";
 let nomesJogadores = [];
 let intervaloTempo = null;
 let intervaloTotal = null;
+let timerExpiracao = null;
+let chaveTurno = null; // "partida:turno:fase" que está na tela
 
 function definirLoading(valor) {
   ocupado = valor;
@@ -20,7 +22,7 @@ function definirLoading(valor) {
 }
 
 async function executarAcao(acao) {
-  if (ocupado) return;
+  if (ocupado) return false;
   elemento("erro").hidden = true;
   const focoAnterior = document.activeElement;
   definirLoading(true);
@@ -31,11 +33,12 @@ async function executarAcao(acao) {
   } catch (erro) {
     elemento("erro").textContent = erro.message || "Algo deu errado. Tente novamente.";
     elemento("erro").hidden = false;
-  } finally {
-    definirLoading(false);
-    if (sucesso) focarTela();
-    else if (focoAnterior && !focoAnterior.closest("[hidden]")) focoAnterior.focus();
-  }
+    } finally {
+      definirLoading(false);
+      if (sucesso) focarTela();
+      else if (focoAnterior && !focoAnterior.closest("[hidden]")) focoAnterior.focus();
+    }
+    return sucesso;
 }
 
 function mostrarTela(id) {
@@ -193,38 +196,54 @@ function iniciarTempoTotal(segundos) {
 
 function pararCronometro() {
   clearInterval(intervaloTempo);
-  intervaloTempo = null;
+  clearTimeout(timerExpiracao);
+  intervaloTempo = timerExpiracao = null;
   elemento("cronometro").hidden = true;
 }
 
-function iniciarCronometro(segundos) {
+const chaveDoTurno = (dados) => `${dados.id}:${dados.turno}:${dados.fase}`;
+
+function agendarExpiracao(ms, chave, falhas = 0) {
+  clearTimeout(timerExpiracao);
+  timerExpiracao = setTimeout(() => estourarTempo(chave, falhas), Math.max(0, ms));
+}
+
+function iniciarCronometro(segundos, expiraEm) {
   pararCronometro();
   if (segundos == null) return;
-  const fim = Date.now() + segundos * 1000; // relógio local, sem depender da hora do servidor
+  const fim = Date.now() + segundos * 1000;
   const rotulo = elemento("cronometro");
   const atualizar = () => {
     const restante = Math.max(0, Math.ceil((fim - Date.now()) / 1000));
     rotulo.textContent = `⏱ ${restante}s`;
     rotulo.classList.toggle("cronometro-urgente", restante <= 10);
-    if (restante === 0) {
-      clearInterval(intervaloTempo);
-      estourarTempo();
-    }
+    if (restante === 0) clearInterval(intervaloTempo); // só para o visor; o descarte é agendado abaixo
   };
   rotulo.hidden = false;
   intervaloTempo = setInterval(atualizar, 250);
   atualizar();
+  agendarExpiracao((expiraEm ?? segundos) * 1000, chaveTurno); // dispara só depois da tolerância
 }
 
-async function estourarTempo() {
-  if (!partida || partida.fase === "final") return;
-  await executarAcao(async () => {
-    const dados = await chamarAPI(`/partida/${encodeURIComponent(partida.id)}/tempo`, "POST");
-    // Sem mensagem = o servidor ainda não considera esgotado: só ressincroniza o contador
-    // (evita o renderizarPartida limpar o que o jogador está a escrever).
-    if (!dados.mensagem) return iniciarCronometro(dados.tempo_restante);
-    renderizarPartida(dados);
+async function estourarTempo(chave, falhas = 0) {
+  if (!partida || chave !== chaveTurno) return;              // o turno já mudou: descarta
+  if (ocupado) return agendarExpiracao(500, chave, falhas);  // outra ação em curso: tenta já já
+  let resolvido = false;
+  let espera = 1000;
+  const sucesso = await executarAcao(async () => {
+    const dados = await chamarAPI(`/partida/${encodeURIComponent(partida.id)}/tempo`, "POST",
+                                  { turno: partida.turno, fase: partida.fase });
+    if (chave !== chaveTurno) { resolvido = true; return; }  // resposta velha: ignora
+    if (dados.mensagem || chaveDoTurno(dados) !== chave) {   // descartou (ou já tinha descartado)
+      resolvido = true;
+      renderizarPartida(dados);
+      return;
+    }
+    espera = Math.max(1, dados.expira_em ?? 1) * 1000;       // ainda na tolerância: espera, sem laço
   });
+  if (resolvido || chave !== chaveTurno) return;
+  if (sucesso) agendarExpiracao(espera, chave);
+  else agendarExpiracao(Math.min(2000 * (falhas + 1), 10000), chave, falhas + 1); // 2s, 4s, 6s... até 10s
 }
 
 function renderizarPartida(dados) {
@@ -265,7 +284,8 @@ function renderizarPartida(dados) {
   elemento("resumo-final").textContent = dados.resumo || "Obrigado por jogar em equipe!";
   elemento("form-dica").reset();
   elemento("form-palpite").reset();
-  iniciarCronometro(dados.tempo_restante);
+  chaveTurno = dados.fase === "final" ? null : chaveDoTurno(dados);
+  iniciarCronometro(dados.tempo_restante, dados.expira_em);
   iniciarTempoTotal(dados.fase === "final" ? null : dados.duracao_segundos);
   elemento("duracao-final").textContent = dados.fase === "final" && dados.duracao_segundos != null
     ? `A partida durou ${formatarDuracao(dados.duracao_segundos)}.`
@@ -332,7 +352,7 @@ async function enviarPalpite(evento) {
     const placarAnterior = partida.placar;
     const dados = await chamarAPI(`/partida/${encodeURIComponent(partida.id)}/palpite`, "POST", { palpite: coordenada });
     renderizarPartida(dados);
-    if (dados.mensagem?.startsWith("Tempo esgotado")) return;    
+    if (dados.mensagem?.startsWith("Tempo esgotado")) return;
     if (dados.placar.acertos > placarAnterior.acertos) mostrarResultadoPalpite(true);
     else if (dados.placar.erros > placarAnterior.erros) mostrarResultadoPalpite(false);
   });
@@ -385,6 +405,7 @@ function revelarCarta() {
 }
 
 function jogarNovamente() {
+  chaveTurno = null;
   pararCronometro();
   pararTempoTotal();
   partida = null;
