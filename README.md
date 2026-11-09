@@ -14,6 +14,7 @@ Jogo de cartas cooperativo de dedução para navegador, baseado no jogo físico 
 - [Histórias de usuário](#histórias-de-usuário)
 - [Metodologia de desenvolvimento](#metodologia-de-desenvolvimento)
 - [Dinâmica de desenvolvimento e refatorações](#dinâmica-de-desenvolvimento-e-refatorações)
+- [Refactorings](#refactorings)
 - [Uso de IA](#uso-de-ia)
 - [Pendências para a NP2](#pendências-para-a-np2)
 
@@ -328,7 +329,7 @@ que dependam do ID de um serviço Railway.
 | RF-DIC-01 | Na fase de dica, a API envia a carta secreta ao jogador da vez; na fase de palpite, não a envia | `test_dica_palpite_e_placar_sao_persistidos` |
 | RF-DIC-02 | A dica deve ter uma única palavra, sem espaços, não vazia e com até 60 caracteres; caso contrário, é recusada com 400 | `test_api_rejeita_dica_invalida_e_palpite_fora_de_fase`; Cypress `partida.cy.js` |
 | RF-DIC-03 | Uma dica válida muda a partida para a fase de palpite e é exibida aos demais | `test_dica_palpite_e_placar_sao_persistidos` |
-| RF-DIC-04 | A dica é gravada com a jogada (jogador, coordenada correta e tentada) | Implementado em `backend/app.py`; sem teste automatizado do campo `dica` |
+| RF-DIC-04 | A dica é gravada com a jogada (jogador, coordenada correta e tentada) | `test_dica_e_gravada_junto_com_a_jogada` |
 
 Limitações: não há autenticação, então a identificação do jogador da vez ocorre
 apenas na interface. A regra de palavra única considera separadores em branco, de modo
@@ -654,6 +655,20 @@ Exemplos concretos para discutir na defesa:
 O grupo ainda deve complementar este relato com as decisões tomadas nas
 reuniões, como redistribuiu tarefas diante de bloqueios e suas próprias lições
 aprendidas. Os exemplos acima são evidências técnicas, não depoimentos dos membros.
+
+## Refactorings
+
+Refactorings sem mudança de comportamento. Antes de cada um, testes de
+caracterização em `backend/tests/test_placar_tabuleiro.py` fixaram os números
+do placar e o JSON completo de `montar_estado`; os mesmos testes passam depois.
+
+| # | Smell | Refactoring aplicado | Por quê | PR | Autoria |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Código duplicado: acertos, erros e pontuação final calculados em cinco trechos de `backend/app.py` e em `backend/jogo.py`, ora somando `acertou`, ora contando coordenadas | Extract Function: `calcular_placar` e `coordenadas_acertadas` em `backend/jogo.py`, usadas pela rota `/placar`, pelo palpite, pelo tempo esgotado, pelo encerramento e por `montar_estado` | A regra de pontuação passa a existir em um só lugar; mudar a contagem não exige lembrar de cinco rotas | [Issue #66](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/66) (PR a abrir) | Caio Rodrigues |
+| 2 | Função longa: `montar_estado` monta tabuleiro, placar, tempo, desempenho e resumo | Extract Function: `montar_tabuleiro(palavras, acertos)` em `backend/jogo.py` | Separa a composição da grade 3 × 3 do restante do estado e permite testá-la isoladamente, com o mesmo JSON | [Issue #66](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/66) (PR a abrir) | Caio Rodrigues |
+
+Base das alterações: commit `3ee8280` da `main`. Os links do pipeline verde
+antes e depois (com `DEPLOY` desmarcado) devem ser registrados na PR.
 
 ## Uso de IA
 
