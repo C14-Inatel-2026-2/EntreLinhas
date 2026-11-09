@@ -62,9 +62,24 @@ def avaliar_desempenho(acertos, jogadas, total_cartas):
     }
 
 
+def coordenadas_acertadas(jogadas):
+    """Coordenadas já posicionadas no tabuleiro."""
+    return {jogada["coordenada_correta"] for jogada in jogadas if jogada["acertou"]}
+
+
+def calcular_placar(jogadas):
+    """Acertos e erros da partida; os acertos também são a pontuação final.
+
+    Cada carta sai uma única vez e uma coordenada preenchida não aceita novo
+    palpite, então contar coordenadas distintas equivale a somar os acertos.
+    """
+    acertos = len(coordenadas_acertadas(jogadas))
+    return {"acertos": acertos, "erros": len(jogadas) - acertos}
+
+
 def montar_estado(partida, progresso, jogadas, mensagem=None):
-    acertos = {jogada["coordenada_correta"] for jogada in jogadas if jogada["acertou"]}
-    placar = {"acertos": len(acertos), "erros": len(jogadas) - len(acertos)}
+    acertos = coordenadas_acertadas(jogadas)
+    placar = calcular_placar(jogadas)
     cartas = progresso["cartas"]
     indice = progresso["indice"]
     fase = progresso["fase"]
