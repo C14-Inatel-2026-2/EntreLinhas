@@ -664,11 +664,11 @@ do placar e o JSON completo de `montar_estado`; os mesmos testes passam depois.
 
 | # | Smell | Refactoring aplicado | Por quê | PR | Autoria |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Código duplicado: acertos, erros e pontuação final calculados em cinco trechos de `backend/app.py` e em `backend/jogo.py`, ora somando `acertou`, ora contando coordenadas | Extract Function: `calcular_placar` e `coordenadas_acertadas` em `backend/jogo.py`, usadas pela rota `/placar`, pelo palpite, pelo tempo esgotado, pelo encerramento e por `montar_estado` | A regra de pontuação passa a existir em um só lugar; mudar a contagem não exige lembrar de cinco rotas | [Issue #66](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/66) (PR a abrir) | Caio Rodrigues |
-| 2 | Função longa: `montar_estado` monta tabuleiro, placar, tempo, desempenho e resumo | Extract Function: `montar_tabuleiro(palavras, acertos)` em `backend/jogo.py` | Separa a composição da grade 3 × 3 do restante do estado e permite testá-la isoladamente, com o mesmo JSON | [Issue #66](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/66) (PR a abrir) | Caio Rodrigues |
+| 1 | Código duplicado: acertos, erros e pontuação final calculados em cinco trechos de `backend/app.py` e em `backend/jogo.py`, ora somando `acertou`, ora contando coordenadas | Extract Function: `calcular_placar` e `coordenadas_acertadas` em `backend/jogo.py`, usadas pela rota `/placar`, pelo palpite, pelo tempo esgotado, pelo encerramento e por `montar_estado` | A regra de pontuação passa a existir em um só lugar; mudar a contagem não exige lembrar de cinco rotas | [PR #72](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/72) | Caio Rodrigues |
+| 2 | Função longa: `montar_estado` monta tabuleiro, placar, tempo, desempenho e resumo | Extract Function: `montar_tabuleiro(palavras, acertos)` em `backend/jogo.py` | Separa a composição da grade 3 × 3 do restante do estado e permite testá-la isoladamente, com o mesmo JSON | [PR #72](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/72) | Caio Rodrigues |
 
 Base das alterações: commit `3ee8280` da `main`. Os links do pipeline verde
-antes e depois (com `DEPLOY` desmarcado) devem ser registrados na PR.
+antes e depois (com `DEPLOY` desmarcado) ficam registrados na PR.
 
 ## Uso de IA
 
