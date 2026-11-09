@@ -77,6 +77,18 @@ def calcular_placar(jogadas):
     return {"acertos": acertos, "erros": len(jogadas) - acertos}
 
 
+def montar_tabuleiro(palavras, acertos):
+    """Grade 3 × 3: três palavras nas linhas, três nas colunas e o estado das nove células."""
+    return {
+        "linhas": [{"id": id_, "palavra": palavra} for id_, palavra in zip(LINHAS, palavras[:3])],
+        "colunas": [{"id": id_, "palavra": palavra} for id_, palavra in zip(COLUNAS, palavras[3:])],
+        "celulas": [
+            {"coordenada": carta, "estado": "acerto" if carta in acertos else "vazia"}
+            for carta in [f"{linha}{coluna}" for linha in LINHAS for coluna in COLUNAS]
+        ],
+    }
+
+
 def montar_estado(partida, progresso, jogadas, mensagem=None):
     acertos = coordenadas_acertadas(jogadas)
     placar = calcular_placar(jogadas)
@@ -94,14 +106,7 @@ def montar_estado(partida, progresso, jogadas, mensagem=None):
         "jogador_dica": jogador_da_rodada(partida, progresso),
         "carta_secreta": cartas[indice] if fase == "dica" else None,
         "dica": progresso["dica"] if fase == "palpite" else None,
-        "tabuleiro": {
-            "linhas": [{"id": id_, "palavra": palavra} for id_, palavra in zip(LINHAS, progresso["palavras"][:3])],
-            "colunas": [{"id": id_, "palavra": palavra} for id_, palavra in zip(COLUNAS, progresso["palavras"][3:])],
-            "celulas": [
-                {"coordenada": carta, "estado": "acerto" if carta in acertos else "vazia"}
-                for carta in [f"{linha}{coluna}" for linha in LINHAS for coluna in COLUNAS]
-            ],
-        },
+        "tabuleiro": montar_tabuleiro(progresso["palavras"], acertos),
         "placar": placar,
         "turno": progresso["indice"],
         "duracao_segundos": duracao,
