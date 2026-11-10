@@ -4,6 +4,7 @@ import os
 import random
 import time
 from datetime import datetime
+from contextlib import contextmanager
 
 from palavras import PALAVRAS_INICIAIS
 
@@ -49,6 +50,18 @@ def conectar_bd(db_path=None):
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
+
+@contextmanager
+def get_db_connection(db_path=None):
+    conn = conectar_bd(db_path)
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 def criar_tabelas(conn):
     with conn:
