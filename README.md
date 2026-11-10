@@ -655,6 +655,25 @@ O grupo ainda deve complementar este relato com as decisões tomadas nas
 reuniões, como redistribuiu tarefas diante de bloqueios e suas próprias lições
 aprendidas. Os exemplos acima são evidências técnicas, não depoimentos dos membros.
 
+## Refactorings
+
+Entrega de Fernando Stein (@Stenishh), tarefa [#69](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/69),
+implementada na [PR #73](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/73).
+
+| Smell identificado | Refactoring aplicado | Motivo e comportamento preservado |
+| --- | --- | --- |
+| `app.js` concentrava apresentação, eventos e foco dos diálogos junto do estado e das chamadas à API. | **Extract Module:** extrair `frontend/static/js/ui/dialogos.js`. | Concentrar o ciclo de vida dos diálogos em um módulo que recebe nome, fase e retorno de foco. Preserva os textos de início, acerto, erro e tempo esgotado, o fechamento por botão/Escape e o foco após fechar; não move o estado da partida. |
+| `renderizarPartida` misturava criação de elementos com cálculo dos participantes ativos e de seus papéis. | **Extract Function:** extrair `obterParticipantesDoTurno` em `frontend/static/js/utils/turno.js`. | Permitir testar a decisão sem DOM. Preserva nomes, ordem, autor da dica, palpite da outra pessoa em dupla, palpite coletivo com 3 a 6 pessoas e ausência de participantes ativos na fase final. |
+
+Os testes unitários em `frontend/tests/turno.test.mjs` cobrem todos os autores de
+dica possíveis em equipes de 2 a 6 jogadores, nas fases dica, palpite e final.
+Os cenários Cypress em `dialogos.cy.js` e `participantes-turno.cy.js` verificam
+abertura, fechamento, foco e a apresentação dos papéis na interface.
+Os testes existentes de cronômetro também verificam o diálogo de tempo esgotado.
+As evidências de execução, os SHAs e as pendências de integração são registradas
+na PR; a conclusão depende da integração da tarefa de Mateus (#68), de revisão
+independente e de pipeline verde após o merge na `main`.
+
 ## Uso de IA
 
 Esta seção está em construção. É necessário reunir os relatos de todos os
