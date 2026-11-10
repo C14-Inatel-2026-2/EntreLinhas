@@ -13,7 +13,7 @@ describe("Diálogos: abertura, fechamento e foco", () => {
   it("devolve o foco à carta ao fechar o diálogo inicial com Escape", () => {
     cy.fixture("partida").then((estado) => {
       iniciar(estado);
-      cy.get("#continuar-turno").type("{esc}");
+      cy.press(Cypress.Keyboard.Keys.ESC);
       cy.get("#inicio-turno").should("not.be.visible");
       cy.get("#revelar-carta").should("be.focused");
     });
@@ -47,7 +47,7 @@ describe("Diálogos: abertura, fechamento e foco", () => {
           cy.get("#continuar-palpite").should("be.focused")
             .and("have.text", final ? "Ver resultado" : "Continuar");
           if (acertou) cy.get("#continuar-palpite").click();
-          else cy.get("#continuar-palpite").type("{esc}");
+          else cy.press(Cypress.Keyboard.Keys.ESC);
           cy.get("#resultado-palpite").should("not.be.visible");
           cy.get(final ? "#titulo-final" : "#revelar-carta").should("be.focused");
         });
