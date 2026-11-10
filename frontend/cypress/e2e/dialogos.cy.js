@@ -10,10 +10,11 @@ describe("Diálogos: abertura, fechamento e foco", () => {
     cy.get("#continuar-turno").should("be.focused");
   }
 
-  it("devolve o foco à carta ao fechar o diálogo inicial com Escape", () => {
+  it("devolve o foco à carta após o cancelamento nativo do diálogo inicial", () => {
     cy.fixture("partida").then((estado) => {
       iniciar(estado);
-      cy.press(Cypress.Keyboard.Keys.ESC);
+      // Exercita cancel/close nativos sem depender da entrega de Escape ao iframe do runner.
+      cy.get("#inicio-turno").then(($dialogo) => $dialogo[0].requestClose());
       cy.get("#inicio-turno").should("not.be.visible");
       cy.get("#revelar-carta").should("be.focused");
     });
