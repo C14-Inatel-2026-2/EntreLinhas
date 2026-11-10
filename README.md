@@ -655,7 +655,7 @@ O grupo ainda deve complementar este relato com as decisões tomadas nas
 reuniões, como redistribuiu tarefas diante de bloqueios e suas próprias lições
 aprendidas. Os exemplos acima são evidências técnicas, não depoimentos dos membros.
 
-## Refatorações (Issue #66)
+## Refactorings (Issue #66)
 
 **SHA Base:** `3ee82801008e4b722bc8243e3c2bdbefff5ea509`
 
@@ -664,14 +664,14 @@ aprendidas. Os exemplos acima são evidências técnicas, não depoimentos dos m
 - **Refactoring Aplicado:** *Extract Context Manager* (criação de `get_db_connection` em `backend/db.py` com gerenciamento automático do ciclo de vida, `rollback` em falhas e `close` garantido no `finally`).
 - **Por quê:** Garante que toda conexão com o banco SQLite seja encerrada deterministicamente ao final de cada requisição HTTP em `backend/app.py`, evitando vazamento de recursos e contenção de conexões no SQLite.
 - **Autor:** Henrique Rodrigues Mendonça
-- **PR:** 
+- **PR:** [#75](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/75)
 
 ### 2. Extração das Etapas de Inicialização do Banco de Dados
 - **Code Smell:** *Long Method / Mixed Responsibilities* (a função `criar_tabelas` acumulava DDL de schemas, carga de dados iniciais e aplicação de migrações em um único bloco de código).
 - **Refactoring Aplicado:** *Extract Method* (divisão em `_inicializar_schemas`, `_popular_palavras_iniciais` e `_aplicar_migracoes_banco` em `backend/db.py`).
 - **Por quê:** Melhora a legibilidade, isola responsabilidades de infraestrutura de dados e garante idempotência limpa na subida da API.
 - **Autor:** Henrique Rodrigues Mendonça
-- **PR:** 
+- **PR:** [#75](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/75)
 
 ## Uso de IA
 
