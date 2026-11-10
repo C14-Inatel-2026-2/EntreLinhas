@@ -5,7 +5,10 @@ from db import (
     conectar_bd, get_db_connection, criar_tabelas, criar_partida, consultar_partida, salvar_jogada,
     criar_estado, consultar_estado, atualizar_estado, consultar_jogadas, finalizar_partida,
 )
-from jogo import criar_cartas, montar_estado, jogador_da_rodada, tempo_esgotado
+from jogo import (
+    criar_cartas, montar_estado, jogador_da_rodada, tempo_esgotado,
+    calcular_placar, coordenadas_acertadas,
+)
 
 app = Flask(
     __name__,
@@ -71,9 +74,7 @@ def rota_placar(partida_id):
     with get_db_connection() as conn:
         if not consultar_estado(conn, partida_id):
             return jsonify({"erro": "Partida não encontrada"}), 404
-        jogadas = consultar_jogadas(conn, partida_id)
-        acertos = sum(jogada["acertou"] for jogada in jogadas)
-        return jsonify({"acertos": acertos, "erros": len(jogadas) - acertos}), 200
+        return jsonify(calcular_placar(consultar_jogadas(conn, partida_id))), 200
 
 def _penalizar_tempo(conn, partida, progresso):
     correta = progresso["cartas"][progresso["indice"]]
@@ -85,7 +86,7 @@ def _penalizar_tempo(conn, partida, progresso):
     fase = "final" if novo_indice == len(progresso["cartas"]) else "dica"
     atualizar_estado(conn, partida["id"], novo_indice, fase)
     if fase == "final":
-        pontuacao = sum(j["acertou"] for j in consultar_jogadas(conn, partida["id"]))
+        pontuacao = calcular_placar(consultar_jogadas(conn, partida["id"]))["acertos"]
         finalizar_partida(conn, partida["id"], pontuacao)
     conn.commit()
     partida = consultar_partida(conn, partida["id"])
@@ -125,7 +126,7 @@ def rota_encerrar_partida(partida_id):
 
         jogadas = consultar_jogadas(conn, partida_id)
         if progresso["fase"] != "final":
-            pontuacao = sum(jogada["acertou"] for jogada in jogadas)
+            pontuacao = calcular_placar(jogadas)["acertos"]
             finalizar_partida(conn, partida_id, pontuacao)
             conn.commit()
             partida = consultar_partida(conn, partida_id)
@@ -151,9 +152,7 @@ def rota_palpite(partida_id):
         if not isinstance(palpite, str) or palpite not in progresso["cartas"]:
             return jsonify({"erro": "Coordenada inválida"}), 400
 
-        jogadas = consultar_jogadas(conn, partida_id)
-        acertos = {jogada["coordenada_correta"] for jogada in jogadas if jogada["acertou"]}
-        if palpite in acertos:
+        if palpite in coordenadas_acertadas(consultar_jogadas(conn, partida_id)):
             return jsonify({"erro": "Essa coordenada já foi preenchida"}), 400
 
         correta = progresso["cartas"][progresso["indice"]]
@@ -166,7 +165,7 @@ def rota_palpite(partida_id):
         atualizar_estado(conn, partida_id, novo_indice, fase)
         
         if fase == "final":
-            pontuacao = sum(jogada["acertou"] for jogada in consultar_jogadas(conn, partida_id))
+            pontuacao = calcular_placar(consultar_jogadas(conn, partida_id))["acertos"]
             finalizar_partida(conn, partida_id, pontuacao)
             partida = consultar_partida(conn, partida_id)
             
