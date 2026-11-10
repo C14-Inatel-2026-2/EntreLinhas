@@ -2,6 +2,7 @@
 import { configurarDialogos, focarDialogoAberto, mostrarInicioTurno, mostrarResultadoPalpite, mostrarTempoEsgotado } from "./ui/dialogos.js";
 import { chamarAPI } from "./services/api.js";
 import { elemento } from "./utils/dom.js";
+import { obterParticipantesDoTurno } from "./utils/turno.js";
 import { validarPlacar, validarEstado } from "./utils/validacao.js";
 import { obterCamposDeNomes, validarNomes, renderizarCamposDeNomes } from "./ui/jogadores.js";
 
@@ -249,19 +250,15 @@ function renderizarPartida(dados) {
   renderizarTabuleiro(dados.tabuleiro, anteriores);
   elemento("form-dica").hidden = dados.fase !== "dica";
   elemento("form-palpite").hidden = dados.fase !== "palpite";
-  const jogadorDica = nomesJogadores[dados.jogador_dica - 1] || `Jogador ${dados.jogador_dica}`;
-  const indicePalpite = dados.jogador_dica % nomesJogadores.length;
-  const emDupla = nomesJogadores.length === 2;
-  const jogadorPalpite = emDupla ? nomesJogadores[indicePalpite] : "Vez do time";
-  const jogadores = nomesJogadores.map((nome, indice) => {
-    const dandoDica = indice + 1 === dados.jogador_dica;
-    const ativo = dados.fase === "dica" ? dandoDica : dados.fase === "palpite" && !dandoDica;
+  const { jogadorDica, jogadorPalpite, emDupla, jogadores: participantes } =
+    obterParticipantesDoTurno(nomesJogadores, dados.jogador_dica, dados.fase);
+  const jogadores = participantes.map(({ nome, ativo, situacao: descricao }) => {
     const item = document.createElement("li");
     item.className = `jogador-turno ${ativo ? "jogador-turno-ativo" : "jogador-turno-aguardando"}`;
     const identificacao = document.createElement("strong");
     identificacao.textContent = nome;
     const situacao = document.createElement("span");
-    situacao.textContent = ativo ? (dados.fase === "dica" ? "Dando a dica" : "Adivinhando") : "Aguardando";
+    situacao.textContent = descricao;
     item.append(identificacao, situacao);
     return item;
   });
