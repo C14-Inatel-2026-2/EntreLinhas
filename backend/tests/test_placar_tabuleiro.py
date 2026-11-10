@@ -54,6 +54,8 @@ CELULAS_FINAIS = [
 @pytest.fixture
 def cliente(tmp_path, monkeypatch):
     caminho = tmp_path / "partidas.sqlite3"
+    # As rotas abrem a conexão por get_db_connection, que lê DATABASE_PATH.
+    monkeypatch.setenv("DATABASE_PATH", str(caminho))
     conn = conectar_bd(str(caminho))
     criar_tabelas(conn)
     conn.close()

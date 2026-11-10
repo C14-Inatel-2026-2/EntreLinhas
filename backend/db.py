@@ -4,6 +4,7 @@ import os
 import random
 import time
 from datetime import datetime
+from contextlib import contextmanager
 
 from palavras import PALAVRAS_INICIAIS
 
@@ -50,28 +51,46 @@ def conectar_bd(db_path=None):
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 
+@contextmanager
+def get_db_connection(db_path=None):
+    conn = conectar_bd(db_path)
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+def _inicializar_schemas(conn):
+    conn.execute(SCHEMA_PARTIDAS)
+    conn.execute(SCHEMA_JOGADAS)
+    conn.execute(SCHEMA_ESTADOS)
+    conn.execute("CREATE TABLE IF NOT EXISTS palavras (id INTEGER PRIMARY KEY, palavra TEXT NOT NULL UNIQUE)")
+
+def _popular_palavras_iniciais(conn):
+    conn.executemany(
+        "INSERT OR IGNORE INTO palavras (palavra) VALUES (?)",
+        [(palavra,) for palavra in PALAVRAS_INICIAIS],
+    )
+
+def _aplicar_migracoes_banco(conn):
+    colunas = {row["name"] for row in conn.execute("PRAGMA table_info(estados_partida)")}
+    if "ordem_jogadores" not in colunas:
+        conn.execute("ALTER TABLE estados_partida ADD COLUMN ordem_jogadores TEXT")
+    if "palavras" not in colunas:
+        conn.execute("ALTER TABLE estados_partida ADD COLUMN palavras TEXT NOT NULL "
+                     "DEFAULT '[\"mar\", \"casa\", \"música\", \"noite\", \"festa\", \"viagem\"]'")
+    if "turno_inicio" not in colunas:
+        conn.execute("ALTER TABLE estados_partida ADD COLUMN turno_inicio REAL")
+    conn.execute("UPDATE estados_partida SET turno_inicio = ? WHERE fase = 'palpite' AND turno_inicio IS NULL", (time.time(),))
+
 def criar_tabelas(conn):
     with conn:
-        conn.execute(SCHEMA_PARTIDAS)
-        conn.execute(SCHEMA_JOGADAS)
-        conn.execute(SCHEMA_ESTADOS)
-        conn.execute("CREATE TABLE IF NOT EXISTS palavras (id INTEGER PRIMARY KEY, palavra TEXT NOT NULL UNIQUE)")
-        conn.executemany(
-            "INSERT OR IGNORE INTO palavras (palavra) VALUES (?)",
-            [(palavra,) for palavra in PALAVRAS_INICIAIS],
-        )
-        # Bancos anteriores recebem as palavras originais, preservando partidas em andamento.
-        colunas = {row["name"] for row in conn.execute("PRAGMA table_info(estados_partida)")}
-        if "ordem_jogadores" not in colunas:
-            conn.execute("ALTER TABLE estados_partida ADD COLUMN ordem_jogadores TEXT")
-        if "palavras" not in colunas:
-            conn.execute("ALTER TABLE estados_partida ADD COLUMN palavras TEXT NOT NULL "
-                         "DEFAULT '[\"mar\", \"casa\", \"música\", \"noite\", \"festa\", \"viagem\"]'")
-        if "turno_inicio" not in colunas:
-            conn.execute("ALTER TABLE estados_partida ADD COLUMN turno_inicio REAL")
-        # Partidas existentes na fase de palpite recebem o prazo ao atualizar a aplicação.
-        conn.execute("UPDATE estados_partida SET turno_inicio = ? WHERE fase = 'palpite' AND turno_inicio IS NULL", (time.time(),))
-
+        _inicializar_schemas(conn)
+        _popular_palavras_iniciais(conn)
+        _aplicar_migracoes_banco(conn)
 
 def criar_partida(conn, num_jogadores):
     data_inicio = datetime.now().isoformat()

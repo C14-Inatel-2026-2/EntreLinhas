@@ -2,7 +2,7 @@ from pathlib import Path
 
 from flask import Flask, request, jsonify, redirect
 from db import (
-    conectar_bd, criar_tabelas, criar_partida, consultar_partida, salvar_jogada,
+    conectar_bd, get_db_connection, criar_tabelas, criar_partida, consultar_partida, salvar_jogada,
     criar_estado, consultar_estado, atualizar_estado, consultar_jogadas, finalizar_partida,
 )
 from jogo import (
@@ -37,9 +37,8 @@ def health():
 
 # garante que as tabelas existem quando a api sobe
 with app.app_context():
-    conn = conectar_bd()
-    criar_tabelas(conn)
-    conn.close()
+    with get_db_connection() as conn:
+        criar_tabelas(conn)
 
 @app.route("/partida", methods=["POST"])
 def rota_criar_partida():
@@ -51,21 +50,18 @@ def rota_criar_partida():
     if type(num_jogadores) is not int or not 2 <= num_jogadores <= 6:
         return jsonify({"erro": "Número de jogadores inválido"}), 400
 
-    conn = conectar_bd()
-    try:
+    with get_db_connection() as conn:
         partida_id = criar_partida(conn, num_jogadores)
         criar_estado(conn, partida_id, criar_cartas())
         partida = consultar_partida(conn, partida_id)
         progresso = consultar_estado(conn, partida_id)
+        conn.commit()
         return jsonify(montar_estado(partida, progresso, [])), 201
-    finally:
-        conn.close()
 
 @app.route("/partida/<int:partida_id>", methods=["GET"])
 def rota_obter_placar(partida_id):
-    conn = conectar_bd()
-    partida = consultar_partida(conn, partida_id)
-    conn.close()
+    with get_db_connection() as conn:
+        partida = consultar_partida(conn, partida_id)
 
     if not partida:
         return jsonify({"erro": "Partida não encontrada"}), 404
@@ -75,13 +71,10 @@ def rota_obter_placar(partida_id):
 
 @app.route("/partida/<int:partida_id>/placar", methods=["GET"])
 def rota_placar(partida_id):
-    conn = conectar_bd()
-    try:
+    with get_db_connection() as conn:
         if not consultar_estado(conn, partida_id):
             return jsonify({"erro": "Partida não encontrada"}), 404
         return jsonify(calcular_placar(consultar_jogadas(conn, partida_id))), 200
-    finally:
-        conn.close()
 
 def _penalizar_tempo(conn, partida, progresso):
     correta = progresso["cartas"][progresso["indice"]]
@@ -95,16 +88,16 @@ def _penalizar_tempo(conn, partida, progresso):
     if fase == "final":
         pontuacao = calcular_placar(consultar_jogadas(conn, partida["id"]))["acertos"]
         finalizar_partida(conn, partida["id"], pontuacao)
-        partida = consultar_partida(conn, partida["id"])
+    conn.commit()
+    partida = consultar_partida(conn, partida["id"])
     progresso = consultar_estado(conn, partida["id"])
     jogadas = consultar_jogadas(conn, partida["id"])
     return jsonify(montar_estado(partida, progresso, jogadas,
-                                 "Tempo esgotado! A carta foi descartada.")), 200
+                                  "Tempo esgotado! A carta foi descartada.")), 200
 
 @app.route("/partida/<int:partida_id>/dica", methods=["POST"])
 def rota_dica(partida_id):
-    conn = conectar_bd()
-    try:
+    with get_db_connection() as conn:
         partida = consultar_partida(conn, partida_id)
         progresso = consultar_estado(conn, partida_id)
         if not partida or not progresso:
@@ -119,15 +112,13 @@ def rota_dica(partida_id):
             return jsonify({"erro": "A dica deve ter uma única palavra de até 60 caracteres"}), 400
 
         atualizar_estado(conn, partida_id, progresso["indice"], "palpite", dica.strip())
+        conn.commit()
         progresso = consultar_estado(conn, partida_id)
         return jsonify(montar_estado(partida, progresso, consultar_jogadas(conn, partida_id))), 200
-    finally:
-        conn.close()
 
 @app.route("/partida/<int:partida_id>/encerrar", methods=["POST"])
 def rota_encerrar_partida(partida_id):
-    conn = conectar_bd()
-    try:
+    with get_db_connection() as conn:
         partida = consultar_partida(conn, partida_id)
         progresso = consultar_estado(conn, partida_id)
         if not partida or not progresso:
@@ -137,16 +128,14 @@ def rota_encerrar_partida(partida_id):
         if progresso["fase"] != "final":
             pontuacao = calcular_placar(jogadas)["acertos"]
             finalizar_partida(conn, partida_id, pontuacao)
+            conn.commit()
             partida = consultar_partida(conn, partida_id)
             progresso = consultar_estado(conn, partida_id)
         return jsonify(montar_estado(partida, progresso, jogadas)), 200
-    finally:
-        conn.close()
 
 @app.route("/partida/<int:partida_id>/palpite", methods=["POST"])
 def rota_palpite(partida_id):
-    conn = conectar_bd()
-    try:
+    with get_db_connection() as conn:
         partida = consultar_partida(conn, partida_id)
         progresso = consultar_estado(conn, partida_id)
         if not partida or not progresso:
@@ -169,25 +158,27 @@ def rota_palpite(partida_id):
         correta = progresso["cartas"][progresso["indice"]]
         acertou = palpite == correta
         jogador = str(jogador_da_rodada(partida, progresso))
+        
         salvar_jogada(conn, partida_id, jogador, progresso["dica"], correta, palpite, progresso["indice"] + 1)
         novo_indice = progresso["indice"] + 1
         fase = "final" if novo_indice == len(progresso["cartas"]) else "dica"
         atualizar_estado(conn, partida_id, novo_indice, fase)
+        
         if fase == "final":
             pontuacao = calcular_placar(consultar_jogadas(conn, partida_id))["acertos"]
             finalizar_partida(conn, partida_id, pontuacao)
             partida = consultar_partida(conn, partida_id)
+            
         progresso = consultar_estado(conn, partida_id)
         mensagem = "Palpite correto!" if acertou else "Palpite incorreto!"
-        return jsonify(montar_estado(partida, progresso, consultar_jogadas(conn, partida_id), mensagem)), 200
-    finally:
-        conn.close()
-
+        jogadas_finais = consultar_jogadas(conn, partida_id)
+        
+        conn.commit()
+        return jsonify(montar_estado(partida, progresso, jogadas_finais, mensagem)), 200
 @app.route("/partida/<int:partida_id>/tempo", methods=["POST"])
 def rota_tempo(partida_id):
     """Aplica expiração somente ao palpite que o cliente está exibindo."""
-    conn = conectar_bd()
-    try:
+    with get_db_connection() as conn:
         partida = consultar_partida(conn, partida_id)
         progresso = consultar_estado(conn, partida_id)
         if not partida or not progresso:
@@ -199,5 +190,3 @@ def rota_tempo(partida_id):
         if mesmo_turno and tempo_esgotado(progresso):
             return _penalizar_tempo(conn, partida, progresso)
         return jsonify(montar_estado(partida, progresso, consultar_jogadas(conn, partida_id))), 200
-    finally:
-        conn.close()
