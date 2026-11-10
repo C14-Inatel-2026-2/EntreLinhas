@@ -1,4 +1,5 @@
 /* Entrada da SPA: estado da interface, navegação, tabuleiro e eventos de jogo. */
+import { configurarDialogos, focarDialogoAberto, mostrarInicioTurno, mostrarResultadoPalpite, mostrarTempoEsgotado } from "./ui/dialogos.js";
 import { chamarAPI } from "./services/api.js";
 import { elemento } from "./utils/dom.js";
 import { validarPlacar, validarEstado } from "./utils/validacao.js";
@@ -47,14 +48,7 @@ function mostrarTela(id) {
 }
 
 function focarTela() {
-  if (elemento("inicio-turno").open) {
-    elemento("continuar-turno").focus();
-    return;
-  }
-  if (elemento("resultado-palpite").open) {
-    elemento("continuar-palpite").focus();
-    return;
-  }
+  if (focarDialogoAberto()) return;
   if (telaAtual === "tela-nomes-jogadores") {
     elemento("titulo-nomes").focus();
     return;
@@ -292,7 +286,7 @@ function renderizarPartida(dados) {
     : "";
   mostrarTela(dados.fase === "final" ? "tela-final" : "tela-jogo");
   mostrarDesempenho(dados.desempenho);
-  if (dados.mensagem?.startsWith("Tempo esgotado")) mostrarTempoEsgotado();
+  if (dados.mensagem?.startsWith("Tempo esgotado")) mostrarTempoEsgotado(dados.fase);
 }
 
 function abrirTelaDeNomes(evento) {
@@ -326,11 +320,7 @@ async function iniciarPartida(nomes) {
     nomesJogadores = [...nomes];
     renderizarPartida(dados);
     if (dados.fase !== "final") {
-      elemento("nome-inicio-turno").textContent = elemento("nome-turno").textContent;
-      elemento("descricao-inicio-turno").textContent = dados.fase === "palpite"
-        ? "Você dá o primeiro palpite com a ajuda do time."
-        : "Você começa dando a dica. Só você pode ver a carta secreta!";
-      elemento("inicio-turno").showModal();
+      mostrarInicioTurno(elemento("nome-turno").textContent, dados.fase);
     }
   });
 }
@@ -354,22 +344,11 @@ async function enviarPalpite(evento) {
     const dados = await chamarAPI(`/partida/${encodeURIComponent(partida.id)}/palpite`, "POST", { palpite: coordenada });
     renderizarPartida(dados);
     if (dados.mensagem?.startsWith("Tempo esgotado")) return;
-    if (dados.placar.acertos > placarAnterior.acertos) mostrarResultadoPalpite(true);
-    else if (dados.placar.erros > placarAnterior.erros) mostrarResultadoPalpite(false);
+    if (dados.placar.acertos > placarAnterior.acertos) mostrarResultadoPalpite(true, partida.fase);
+    else if (dados.placar.erros > placarAnterior.erros) mostrarResultadoPalpite(false, partida.fase);
   });
 }
 
-function mostrarResultadoPalpite(acertou) {
-  const popup = elemento("resultado-palpite");
-  popup.dataset.resultado = acertou ? "acerto" : "erro";
-  elemento("icone-palpite").textContent = acertou ? "✓" : "×";
-  elemento("titulo-palpite").textContent = acertou ? "Acertou!" : "Errou!";
-  elemento("descricao-palpite").textContent = acertou
-    ? "Boa conexão! Mais uma carta posicionada no tabuleiro."
-    : "Essa não era a coordenada. A carta foi descartada, mas cada ideia conta!";
-  elemento("continuar-palpite").textContent = partida.fase === "final" ? "Ver resultado" : "Continuar";
-  popup.showModal();
-}
 
 function mostrarDesempenho(desempenho) {
   const resultado = elemento("desempenho-final");
@@ -382,15 +361,6 @@ function mostrarDesempenho(desempenho) {
     : `Todas as ${desempenho.total_cartas} cartas foram jogadas.`;
 }
 
-function mostrarTempoEsgotado() {
-  const popup = elemento("resultado-palpite");
-  popup.dataset.resultado = "erro";
-  elemento("icone-palpite").textContent = "⏱";
-  elemento("titulo-palpite").textContent = "Tempo esgotado!";
-  elemento("descricao-palpite").textContent = "A carta foi descartada e um erro foi adicionado ao placar.";
-  elemento("continuar-palpite").textContent = partida.fase === "final" ? "Ver resultado" : "Continuar";
-  popup.showModal();
-}
 
 async function encerrarJogo() {
   if (ocupado || !partida || partida.fase === "final") return;
@@ -442,14 +412,5 @@ elemento("tabuleiro").addEventListener("click", (evento) => {
 elemento("revelar-carta").addEventListener("click", revelarCarta);
 elemento("atualizar-placar").addEventListener("click", atualizarPlacar);
 elemento("encerrar-jogo").addEventListener("click", encerrarJogo);
-elemento("continuar-palpite").addEventListener("click", () => elemento("resultado-palpite").close());
-elemento("continuar-turno").addEventListener("click", () => elemento("inicio-turno").close());
-elemento("inicio-turno").addEventListener("close", focarTela);
-elemento("resultado-palpite").addEventListener("keydown", (evento) => {
-  if (evento.key === "Escape") {
-    evento.preventDefault();
-    elemento("resultado-palpite").close();
-  }
-});
-elemento("resultado-palpite").addEventListener("close", focarTela);
+configurarDialogos(focarTela);
 elemento("jogar-novamente").addEventListener("click", jogarNovamente);
