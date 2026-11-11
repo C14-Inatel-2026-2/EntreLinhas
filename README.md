@@ -655,6 +655,22 @@ O grupo ainda deve complementar este relato com as decisões tomadas nas
 reuniões, como redistribuiu tarefas diante de bloqueios e suas próprias lições
 aprendidas. Os exemplos acima são evidências técnicas, não depoimentos dos membros.
 
+### Tabuleiro da interface — Mateus Mendonça (issue #68, PR #74)
+
+Refactorings sem mudança de comportamento. Antes de cada um, testes de
+caracterização em `frontend/tests/tabuleiro.test.mjs` e um cenário em
+`frontend/cypress/e2e/interface-partida.cy.js` fixaram a estrutura da grade,
+a seleção única, o foco e os atributos de acessibilidade; os mesmos testes
+passam depois.
+
+| # | Smell | Refactoring aplicado | Por quê | PR | Autoria |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Módulo com várias responsabilidades: `frontend/static/js/app.js` reúne navegação, estado da partida e a renderização e seleção do tabuleiro | Extract Module: `frontend/static/js/ui/tabuleiro.js`, com interface explícita (`renderizarTabuleiro`, `selecionarCelula`, `atualizarSelecao`, `obterCelulaSelecionada`, `obterCelulaParaFoco`, `vincularSelecao`) | O tabuleiro deixa de depender das variáveis globais do `app.js` (recebe `podeSelecionar` por parâmetro), pode ser testado sem navegador e libera o `app.js` para a extração da PR de Fernando | [PR #74](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/74) | Mateus Mendonça |
+| 2 | Função longa: `renderizarTabuleiro` monta cabeçalhos, linhas e células em uma única função | Extract Function: `criarCabecalho`, `criarLinha` e `criarCelulaDeCoordenada` em `frontend/static/js/ui/tabuleiro.js` | Cada função monta um nível da grade (cabeçalho, linha, célula), o que facilita testar a estrutura e os atributos ARIA isoladamente, com o mesmo DOM | [PR #74](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/74) | Mateus Mendonça |
+
+Base das alterações: commit `3ee8280` da `main`. Os links do pipeline verde
+antes e depois (com `DEPLOY` desmarcado) ficam registrados na PR.
+
 ## Uso de IA
 
 Esta seção está em construção. É necessário reunir os relatos de todos os
