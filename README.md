@@ -675,22 +675,33 @@ abertura, fechamento, foco e a apresentação dos papéis na interface.
 Os testes de cronômetro também verificam o diálogo de tempo esgotado, incluindo
 expiração na última carta, o botão “Ver resultado” e o foco no resultado final.
 
-Evidências no Jenkins local, com `DEPLOY=false`:
+Evidências atuais no Jenkins local, com `DEPLOY=false` e relatórios arquivados:
 
-- Antes dos refactorings: [build #4](http://localhost:8081/job/EntreLinhas-Refactoring-69/4/),
-  commit `3ee82801008e4b722bc8243e3c2bdbefff5ea509`, **SUCCESS**:
-  73 testes Python, 4 unitários JavaScript e 26 cenários Cypress.
-- Depois dos refactorings: [build #6](http://localhost:8081/job/EntreLinhas-Refactoring-69/6/),
-  commit `125471c848b04918844afd9c0768b2e89de0f9b4`, **SUCCESS**:
-  73 testes Python, 25 unitários JavaScript e 36 cenários Cypress.
+- Base antes dos refactorings de Fernando, já com a PR #74 de Mateus:
+  [build #2](http://localhost:8081/job/EntreLinhas-Refactoring-69/2/), commit
+  `5f3a595167e18431ca36cc118cfdf1851ab89168`, **SUCCESS**:
+  81 testes Python, 19 unitários JavaScript e 27 cenários Cypress.
+- Integração depois dos refactorings de Fernando:
+  [build #1](http://localhost:8081/job/EntreLinhas-Refactoring-69/1/), commit
+  `2edc7c833608c6d810dbdb419439287e0875990c`, **SUCCESS**:
+  81 testes Python, 40 unitários JavaScript, 38 cenários Cypress e 9 testes de
+  proteção da CI; cobertura Python agregada de aproximadamente 92%.
+
+O job isolado `EntreLinhas-Refactoring-69` foi recriado em 11/11/2026, com polling
+removido. Por isso a numeração recomeçou em #1. Os builds #4 e #6 da instalação
+anterior, registrados na PR, não estão disponíveis nesta instância; os links
+acima são as evidências acessíveis atuais e exigem acesso ao Jenkins local.
+
+O registro histórico anterior apontava **SUCCESS** para a base `3ee8280`
+(build #4: 73 testes Python, 4 unitários JavaScript e 26 cenários Cypress) e para
+`125471c` (build #6: 73 testes Python, 25 unitários JavaScript e 36 cenários Cypress).
+Esses registros históricos não substituem os novos builds da integração.
 
 A branch incorpora a PR #74 de Mateus (#68), integrada na `main` pelo commit
-`5f3a595167e18431ca36cc118cfdf1851ab89168`. A nova validação dessa integração
-passou localmente: 81 testes Python, 40 unitários JavaScript, 38 cenários Cypress
-e 9 testes de proteção da CI. O novo cenário cobre a expiração na última carta.
-Ainda são necessários um novo build Jenkins, aprovação
-independente e pipeline verde na `main` após o merge. Os links acima exigem acesso
-ao computador que hospeda o Jenkins.
+`5f3a595167e18431ca36cc118cfdf1851ab89168`. O novo cenário cobre expiração na última
+carta. A validação do commit final que inclui este registro fica vinculada na PR.
+Ainda são necessários aprovação independente e pipeline verde na `main` após o
+merge para encerrar a #69. Nenhum desses builds publicou em produção.
 
 ### Regras e montagem do estado — Caio Rodrigues (issue #66, PR #72)
 
