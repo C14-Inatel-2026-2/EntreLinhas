@@ -691,8 +691,16 @@ Os links apontam para o Jenkins local de quem executou e só abrem nessa máquin
 os prints dos builds foram compartilhados com a equipe. O commit de integração
 na `main`, `57ebb50`, tem o mesmo conteúdo do SHA final testado.
 
-Base das alterações 3 e 4: commit `57ebb50` da `main`. Os builds dessas duas
-alterações serão registrados aqui após a execução no SHA final da PR #76.
+Pipeline do Jenkins antes e depois das alterações 3 e 4, no Jenkins local do
+Caio, com disparo manual e `DEPLOY` desmarcado:
+
+| Momento | SHA | Build | Resultado |
+| --- | --- | --- | --- |
+| Antes (base na `main`) | `57ebb50d9e8c8bd60e50232cd2a045a41241f2c8`, de conteúdo idêntico ao do `15f257b` | [#2 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/2/), executado no `15f257b` | SUCCESS: 21 testes de jogo e baralho, 60 de backend e 26 do Cypress |
+| Depois (PR #76) | `54bccbca64b36de4957fc557f090c000201e60cf` | [#3 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/3/) | SUCCESS: 21 testes de jogo e baralho, 78 de backend e 26 do Cypress |
+
+O build #3 testou o último commit da PR #76 antes deste registro; o commit que
+acrescenta esta tabela altera apenas o README.
 
 ### Conexões e inicialização do banco — Henrique Rodrigues Mendonça (issue #67, PR #75)
 
