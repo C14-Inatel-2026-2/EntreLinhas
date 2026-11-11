@@ -46,6 +46,47 @@ describe("Interface da partida: validação, erros e resultado", () => {
     });
   });
 
+  it("preserva foco, seleção única e acessibilidade do tabuleiro na fase de palpite", () => {
+    cy.fixture("partida").then((estado) => {
+      const palpite = { ...estado, fase: "palpite", carta_secreta: null, dica: "cruzeiro" };
+      cy.intercept("POST", `/partida/${estado.id}/dica`, { body: palpite }).as("dica");
+      iniciarComResposta(estado);
+
+      // Fase da dica: nenhuma célula pode ser selecionada.
+      cy.get("#tabuleiro button[data-coordenada]").should("have.length", 9).and("be.disabled");
+      cy.get("#confirmar-palpite").should("be.disabled");
+
+      cy.get("#dica").type("cruzeiro");
+      cy.get('#form-dica button[type="submit"]').click();
+      cy.wait("@dica");
+
+      // Estrutura semântica e foco inicial na primeira célula habilitada.
+      cy.get("#tabuleiro [role=row]").should("have.length", 4);
+      cy.get("#tabuleiro [role=columnheader]").should("have.length", 4);
+      cy.get("#tabuleiro [role=rowheader]").should("have.length", 3);
+      cy.get('button[data-coordenada="A1"]').should("be.focused").and("have.attr", "aria-pressed", "false");
+      cy.get('button[data-coordenada="A1"]')
+        .should("have.attr", "aria-label", "Selecionar coordenada A1: mar e noite");
+      cy.get("#selecao-palpite").should("have.text", "Nenhuma coordenada selecionada.");
+
+      // Seleção única com atualização de aria-pressed e do aviso ao leitor de tela.
+      cy.get('button[data-coordenada="B2"]').click();
+      cy.get('button[data-coordenada="B2"]').should("have.attr", "aria-pressed", "true");
+      cy.get("#confirmar-palpite").should("be.enabled");
+      cy.get("#selecao-palpite").should("have.text", "Coordenada selecionada: B2.");
+      cy.get('button[data-coordenada="C3"]').click();
+      cy.get("#tabuleiro .celula-selecionada").should("have.length", 1);
+      cy.get('button[data-coordenada="B2"]').should("have.attr", "aria-pressed", "false");
+      cy.get("#selecao-palpite").should("have.text", "Coordenada selecionada: C3.");
+
+      // Ativação por teclado (Enter) alterna a seleção: repetir limpa o palpite.
+      cy.get('button[data-coordenada="C3"]').focus().type("{enter}");
+      cy.get("#tabuleiro .celula-selecionada").should("have.length", 0);
+      cy.get("#confirmar-palpite").should("be.disabled");
+      cy.get("#selecao-palpite").should("have.text", "Nenhuma coordenada selecionada.");
+    });
+  });
+
   it("sem mock: abre os campos de nomes conforme a quantidade de jogadores", () => {
     cy.visit("/");
     cy.get("#jogadores").clear().type("3");

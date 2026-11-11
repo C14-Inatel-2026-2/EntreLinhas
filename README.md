@@ -14,6 +14,7 @@ Jogo de cartas cooperativo de dedução para navegador, baseado no jogo físico 
 - [Histórias de usuário](#histórias-de-usuário)
 - [Metodologia de desenvolvimento](#metodologia-de-desenvolvimento)
 - [Dinâmica de desenvolvimento e refatorações](#dinâmica-de-desenvolvimento-e-refatorações)
+- [Refactorings](#refactorings)
 - [Uso de IA](#uso-de-ia)
 - [Pendências para a NP2](#pendências-para-a-np2)
 
@@ -328,7 +329,7 @@ que dependam do ID de um serviço Railway.
 | RF-DIC-01 | Na fase de dica, a API envia a carta secreta ao jogador da vez; na fase de palpite, não a envia | `test_dica_palpite_e_placar_sao_persistidos` |
 | RF-DIC-02 | A dica deve ter uma única palavra, sem espaços, não vazia e com até 60 caracteres; caso contrário, é recusada com 400 | `test_api_rejeita_dica_invalida_e_palpite_fora_de_fase`; Cypress `partida.cy.js` |
 | RF-DIC-03 | Uma dica válida muda a partida para a fase de palpite e é exibida aos demais | `test_dica_palpite_e_placar_sao_persistidos` |
-| RF-DIC-04 | A dica é gravada com a jogada (jogador, coordenada correta e tentada) | Implementado em `backend/app.py`; sem teste automatizado do campo `dica` |
+| RF-DIC-04 | A dica é gravada com a jogada (jogador, coordenada correta e tentada) | `test_dica_e_gravada_junto_com_a_jogada` |
 
 Limitações: não há autenticação, então a identificação do jogador da vez ocorre
 apenas na interface. A regra de palavra única considera separadores em branco, de modo
@@ -657,6 +658,8 @@ aprendidas. Os exemplos acima são evidências técnicas, não depoimentos dos m
 
 ## Refactorings
 
+### Diálogos e participantes do turno — Fernando Stein (issue #69, PR #73)
+
 Entrega de Fernando Stein (@Stenishh), tarefa [#69](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/69),
 implementada na [PR #73](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/73).
 
@@ -669,10 +672,73 @@ Os testes unitários em `frontend/tests/turno.test.mjs` cobrem todos os autores 
 dica possíveis em equipes de 2 a 6 jogadores, nas fases dica, palpite e final.
 Os cenários Cypress em `dialogos.cy.js` e `participantes-turno.cy.js` verificam
 abertura, fechamento, foco e a apresentação dos papéis na interface.
-Os testes existentes de cronômetro também verificam o diálogo de tempo esgotado.
-As evidências de execução, os SHAs e as pendências de integração são registradas
-na PR; a conclusão depende da integração da tarefa de Mateus (#68), de revisão
-independente e de pipeline verde após o merge na `main`.
+Os testes de cronômetro também verificam o diálogo de tempo esgotado, incluindo
+expiração na última carta, o botão “Ver resultado” e o foco no resultado final.
+
+Evidências no Jenkins local, com `DEPLOY=false`:
+
+- Antes dos refactorings: [build #4](http://localhost:8081/job/EntreLinhas-Refactoring-69/4/),
+  commit `3ee82801008e4b722bc8243e3c2bdbefff5ea509`, **SUCCESS**:
+  73 testes Python, 4 unitários JavaScript e 26 cenários Cypress.
+- Depois dos refactorings: [build #6](http://localhost:8081/job/EntreLinhas-Refactoring-69/6/),
+  commit `125471c848b04918844afd9c0768b2e89de0f9b4`, **SUCCESS**:
+  73 testes Python, 25 unitários JavaScript e 36 cenários Cypress.
+
+A branch incorpora a PR #74 de Mateus (#68), integrada na `main` pelo commit
+`5f3a595167e18431ca36cc118cfdf1851ab89168`. A nova validação dessa integração
+passou localmente: 81 testes Python, 40 unitários JavaScript, 38 cenários Cypress
+e 9 testes de proteção da CI. O novo cenário cobre a expiração na última carta.
+Ainda são necessários um novo build Jenkins, aprovação
+independente e pipeline verde na `main` após o merge. Os links acima exigem acesso
+ao computador que hospeda o Jenkins.
+
+### Regras e montagem do estado — Caio Rodrigues (issue #66, PR #72)
+
+Refactorings sem mudança de comportamento. Antes de cada um, testes de
+caracterização em `backend/tests/test_placar_tabuleiro.py` fixaram os números
+do placar e o JSON completo de `montar_estado`; os mesmos testes passam depois.
+
+| # | Smell | Refactoring aplicado | Por quê | PR | Autoria |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Código duplicado: acertos, erros e pontuação final calculados em cinco trechos de `backend/app.py` e em `backend/jogo.py`, ora somando `acertou`, ora contando coordenadas | Extract Function: `calcular_placar` e `coordenadas_acertadas` em `backend/jogo.py`, usadas pela rota `/placar`, pelo palpite, pelo tempo esgotado, pelo encerramento e por `montar_estado` | A regra de pontuação passa a existir em um só lugar; mudar a contagem não exige lembrar de cinco rotas | [PR #72](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/72) | Caio Rodrigues |
+| 2 | Função longa: `montar_estado` monta tabuleiro, placar, tempo, desempenho e resumo | Extract Function: `montar_tabuleiro(palavras, acertos)` em `backend/jogo.py` | Separa a composição da grade 3 × 3 do restante do estado e permite testá-la isoladamente, com o mesmo JSON | [PR #72](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/72) | Caio Rodrigues |
+
+Base das alterações: commit `3ee8280` da `main`. Os links do pipeline verde
+antes e depois (com `DEPLOY` desmarcado) ficam registrados na PR.
+
+### Conexões e inicialização do banco — Henrique Rodrigues Mendonça (issue #67, PR #75)
+
+**SHA Base:** `3ee82801008e4b722bc8243e3c2bdbefff5ea509`
+
+#### 1. Gerenciador de Contexto para Conexões SQLite (`get_db_connection`)
+- **Code Smell:** *Resource Leak / Unclosed Connections* (abertura e fechamento manual de conexões com risco de vazamento ou locks pendentes em caso de exceções nas rotas).
+- **Refactoring Aplicado:** *Extract Context Manager* (criação de `get_db_connection` em `backend/db.py` com gerenciamento automático do ciclo de vida, `rollback` em falhas e `close` garantido no `finally`).
+- **Por quê:** Garante que toda conexão com o banco SQLite seja encerrada deterministicamente ao final de cada requisição HTTP em `backend/app.py`, evitando vazamento de recursos e contenção de conexões no SQLite.
+- **Autor:** Henrique Rodrigues Mendonça
+- **PR:** [#75](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/75)
+
+#### 2. Extração das Etapas de Inicialização do Banco de Dados
+- **Code Smell:** *Long Method / Mixed Responsibilities* (a função `criar_tabelas` acumulava DDL de schemas, carga de dados iniciais e aplicação de migrações em um único bloco de código).
+- **Refactoring Aplicado:** *Extract Method* (divisão em `_inicializar_schemas`, `_popular_palavras_iniciais` e `_aplicar_migracoes_banco` em `backend/db.py`).
+- **Por quê:** Melhora a legibilidade, isola responsabilidades de infraestrutura de dados e garante idempotência limpa na subida da API.
+- **Autor:** Henrique Rodrigues Mendonça
+- **PR:** [#75](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/75)
+
+### Tabuleiro da interface — Mateus Mendonça (issue #68, PR #74)
+
+Refactorings sem mudança de comportamento. Antes de cada um, testes de
+caracterização em `frontend/tests/tabuleiro.test.mjs` e um cenário em
+`frontend/cypress/e2e/interface-partida.cy.js` fixaram a estrutura da grade,
+a seleção única, o foco e os atributos de acessibilidade; os mesmos testes
+passam depois.
+
+| # | Smell | Refactoring aplicado | Por quê | PR | Autoria |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Módulo com várias responsabilidades: `frontend/static/js/app.js` reúne navegação, estado da partida e a renderização e seleção do tabuleiro | Extract Module: `frontend/static/js/ui/tabuleiro.js`, com interface explícita (`renderizarTabuleiro`, `selecionarCelula`, `atualizarSelecao`, `obterCelulaSelecionada`, `obterCelulaParaFoco`, `vincularSelecao`) | O tabuleiro deixa de depender das variáveis globais do `app.js` (recebe `podeSelecionar` por parâmetro), pode ser testado sem navegador e libera o `app.js` para a extração da PR de Fernando | [PR #74](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/74) | Mateus Mendonça |
+| 2 | Função longa: `renderizarTabuleiro` monta cabeçalhos, linhas e células em uma única função | Extract Function: `criarCabecalho`, `criarLinha` e `criarCelulaDeCoordenada` em `frontend/static/js/ui/tabuleiro.js` | Cada função monta um nível da grade (cabeçalho, linha, célula), o que facilita testar a estrutura e os atributos ARIA isoladamente, com o mesmo DOM | [PR #74](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/74) | Mateus Mendonça |
+
+Base das alterações: commit `3ee8280` da `main`. Os links do pipeline verde
+antes e depois (com `DEPLOY` desmarcado) ficam registrados na PR.
 
 ## Uso de IA
 

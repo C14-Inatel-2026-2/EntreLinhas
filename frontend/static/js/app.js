@@ -5,6 +5,7 @@ import { elemento } from "./utils/dom.js";
 import { obterParticipantesDoTurno } from "./utils/turno.js";
 import { validarPlacar, validarEstado } from "./utils/validacao.js";
 import { obterCamposDeNomes, validarNomes, renderizarCamposDeNomes } from "./ui/jogadores.js";
+import {renderizarTabuleiro, atualizarSelecao, selecionarCelula,obterCelulaSelecionada, obterCelulaParaFoco, vincularSelecao} from "./ui/tabuleiro.js";
 
 let partida = null;
 let ocupado = false;
@@ -15,12 +16,14 @@ let intervaloTempo = null;
 let timerExpiracao = null;
 let chaveTurno = null;
 
+  const podeSelecionar = () => !ocupado && partida?.fase === "palpite";
+
 function definirLoading(valor) {
   ocupado = valor;
   elemento("loading").hidden = !valor;
   elemento("aplicativo").setAttribute("aria-busy", String(valor));
   document.querySelectorAll("button, input").forEach((controle) => { controle.disabled = valor; });
-  atualizarSelecao();
+  atualizarSelecao(podeSelecionar()); 
 }
 
 async function executarAcao(acao) {
@@ -55,101 +58,13 @@ function focarTela() {
     return;
   }
   if (telaAtual === "tela-jogo" && partida.fase === "palpite") {
-    const celula = elemento("tabuleiro").querySelector(".celula-selecionada")
-      || elemento("tabuleiro").querySelector("button[data-coordenada]:not(:disabled)");
-    (celula || elemento("titulo-jogo")).focus();
+    (obterCelulaParaFoco() || elemento("titulo-jogo")).focus();
     return;
   }
   const alvo = telaAtual === "tela-jogo"
     ? "revelar-carta"
     : (telaAtual === "tela-final" ? "titulo-final" : "titulo-inicial");
   elemento(alvo).focus();
-}
-
-function criarCelula(texto, classe, papel, detalhe, tag = "div") {
-  const celula = document.createElement(tag);
-  celula.className = `celula ${classe}`;
-  celula.setAttribute("role", papel);
-  // textContent mantém palavras e mensagens da API como texto, nunca como HTML.
-  celula.textContent = texto;
-  if (detalhe) {
-    const pequeno = document.createElement("small");
-    pequeno.textContent = detalhe;
-    celula.append(pequeno);
-  }
-  return celula;
-}
-
-function renderizarTabuleiro(tabuleiro, anteriores = new Set()) {
-  const grade = elemento("tabuleiro");
-  const fragmento = document.createDocumentFragment();
-  const cabecalho = document.createElement("div");
-  cabecalho.className = "linha-tabuleiro";
-  cabecalho.setAttribute("role", "row");
-  cabecalho.append(criarCelula("↓ linha", "celula-canto", "columnheader", "coluna →"));
-  tabuleiro.colunas.forEach((coluna) => cabecalho.append(criarCelula(coluna.id, "celula-cabecalho", "columnheader", coluna.palavra)));
-  fragmento.append(cabecalho);
-  const celulas = new Map(tabuleiro.celulas.map((celula) => [celula.coordenada, celula]));
-  tabuleiro.linhas.forEach((linha) => {
-    const faixa = document.createElement("div");
-    faixa.className = "linha-tabuleiro";
-    faixa.setAttribute("role", "row");
-    faixa.append(criarCelula(linha.id, "celula-cabecalho", "rowheader", linha.palavra));
-    tabuleiro.colunas.forEach((coluna) => {
-      const coordenada = `${linha.id}${coluna.id}`;
-      const acerto = celulas.get(coordenada)?.estado === "acerto";
-      const classe = acerto ? `celula-acerto${anteriores.has(coordenada) ? "" : " novo-acerto"}` : "celula-vazia";
-      const celula = criarCelula(coordenada, classe, acerto ? "cell" : "button", acerto ? "✓ acerto" : "", acerto ? "div" : "button");
-      celula.dataset.coordenada = coordenada;
-      celula.setAttribute("aria-label", `${acerto ? "Carta posicionada em" : "Selecionar coordenada"} ${coordenada}: ${linha.palavra} e ${coluna.palavra}`);
-      if (acerto) {
-        faixa.append(celula);
-      } else {
-        // O botão nativo responde a Enter/Espaço. O contêiner mantém a semântica da tabela.
-        celula.type = "button";
-        celula.setAttribute("aria-pressed", "false");
-        const espaco = document.createElement("div");
-        espaco.className = "espaco-celula";
-        espaco.setAttribute("role", "cell");
-        espaco.append(celula);
-        faixa.append(espaco);
-      }
-    });
-    fragmento.append(faixa);
-  });
-  grade.replaceChildren(fragmento);
-  atualizarSelecao();
-}
-
-function obterCelulaSelecionada() {
-  return elemento("tabuleiro").querySelector("button[data-coordenada].celula-selecionada");
-}
-
-function atualizarSelecao() {
-  const podeSelecionar = !ocupado && partida?.fase === "palpite";
-  elemento("tabuleiro").querySelectorAll("button[data-coordenada]").forEach((celula) => {
-    celula.disabled = !podeSelecionar;
-  });
-  const selecionada = obterCelulaSelecionada();
-  elemento("confirmar-palpite").disabled = !podeSelecionar || !selecionada;
-  elemento("selecao-palpite").textContent = selecionada
-    ? `Coordenada selecionada: ${selecionada.dataset.coordenada}.`
-    : "Nenhuma coordenada selecionada.";
-}
-
-function selecionarCelula(coordenada) {
-  if (ocupado || partida?.fase !== "palpite") return;
-  const celulas = [...elemento("tabuleiro").querySelectorAll("button[data-coordenada]")];
-  const alvo = celulas.find((celula) => celula.dataset.coordenada === coordenada);
-  if (!alvo || alvo.disabled) return;
-  const selecionar = !alvo.classList.contains("celula-selecionada");
-  // Uma única seleção; repetir o clique na mesma coordenada limpa o palpite.
-  celulas.forEach((celula) => {
-    const marcada = celula === alvo && selecionar;
-    celula.classList.toggle("celula-selecionada", marcada);
-    celula.setAttribute("aria-pressed", String(marcada));
-  });
-  atualizarSelecao();
 }
 
 function renderizarPlacar(placar) {
@@ -247,7 +162,7 @@ function renderizarPartida(dados) {
   partida = dados;
   ocultarCarta();
   renderizarPlacar(dados.placar);
-  renderizarTabuleiro(dados.tabuleiro, anteriores);
+  renderizarTabuleiro(dados.tabuleiro, anteriores, podeSelecionar()); 
   elemento("form-dica").hidden = dados.fase !== "dica";
   elemento("form-palpite").hidden = dados.fase !== "palpite";
   const { jogadorDica, jogadorPalpite, emDupla, jogadores: participantes } =
@@ -346,7 +261,6 @@ async function enviarPalpite(evento) {
   });
 }
 
-
 function mostrarDesempenho(desempenho) {
   const resultado = elemento("desempenho-final");
   resultado.hidden = !desempenho;
@@ -357,7 +271,6 @@ function mostrarDesempenho(desempenho) {
     ? `${desempenho.cartas_restantes} de ${desempenho.total_cartas} cartas ficaram sem jogar.`
     : `Todas as ${desempenho.total_cartas} cartas foram jogadas.`;
 }
-
 
 async function encerrarJogo() {
   if (ocupado || !partida || partida.fase === "final") return;
@@ -401,11 +314,7 @@ elemento("campos-nomes").addEventListener("input", () => validarNomes());
 elemento("voltar-nomes").addEventListener("click", voltarParaInicio);
 elemento("form-dica").addEventListener("submit", enviarDica);
 elemento("form-palpite").addEventListener("submit", enviarPalpite);
-// Delegação: um listener atende todas as células, inclusive após renderizar a rodada.
-elemento("tabuleiro").addEventListener("click", (evento) => {
-  const celula = evento.target.closest("button[data-coordenada]");
-  if (celula && elemento("tabuleiro").contains(celula)) selecionarCelula(celula.dataset.coordenada);
-});
+vincularSelecao((coordenada) => selecionarCelula(coordenada, podeSelecionar()));
 elemento("revelar-carta").addEventListener("click", revelarCarta);
 elemento("atualizar-placar").addEventListener("click", atualizarPlacar);
 elemento("encerrar-jogo").addEventListener("click", encerrarJogo);
