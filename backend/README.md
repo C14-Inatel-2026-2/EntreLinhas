@@ -17,8 +17,9 @@ na mesma origem. Abra `http://127.0.0.1:5000/`.
 O banco padrão é `jogo.db` no diretório de execução; `DATABASE_PATH` permite
 selecionar outro arquivo, inclusive o banco existente na raiz do repositório.
 
-`app.py` contém as rotas, `db.py` a persistência, `jogo.py` o estado da API e
-`src/` as classes de domínio. A suíte completa fica em `tests/`.
+`app.py` contém as rotas, `db.py` a persistência e `jogo.py` as regras e o
+estado usados pela API. `src/` guarda as classes de domínio em memória; a API
+usa dela apenas `Baralho`. A suíte completa fica em `tests/`.
 
 ### Palavras do tabuleiro
 
