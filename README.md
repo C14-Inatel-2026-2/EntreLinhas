@@ -658,6 +658,51 @@ aprendidas. Os exemplos acima são evidências técnicas, não depoimentos dos m
 
 ## Refactorings
 
+### Diálogos e participantes do turno — Fernando Stein (issue #69, PR #73)
+
+Entrega de Fernando Stein (@Stenishh), tarefa [#69](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/69),
+implementada na [PR #73](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/73).
+
+| Smell identificado | Refactoring aplicado | Motivo e comportamento preservado |
+| --- | --- | --- |
+| `app.js` concentrava apresentação, eventos e foco dos diálogos junto do estado e das chamadas à API. | **Extract Module:** extrair `frontend/static/js/ui/dialogos.js`. | Concentrar o ciclo de vida dos diálogos em um módulo que recebe nome, fase e retorno de foco. Preserva os textos de início, acerto, erro e tempo esgotado, o fechamento por botão/Escape e o foco após fechar; não move o estado da partida. |
+| `renderizarPartida` misturava criação de elementos com cálculo dos participantes ativos e de seus papéis. | **Extract Function:** extrair `obterParticipantesDoTurno` em `frontend/static/js/utils/turno.js`. | Permitir testar a decisão sem DOM. Preserva nomes, ordem, autor da dica, palpite da outra pessoa em dupla, palpite coletivo com 3 a 6 pessoas e ausência de participantes ativos na fase final. |
+
+Os testes unitários em `frontend/tests/turno.test.mjs` cobrem todos os autores de
+dica possíveis em equipes de 2 a 6 jogadores, nas fases dica, palpite e final.
+Os cenários Cypress em `dialogos.cy.js` e `participantes-turno.cy.js` verificam
+abertura, fechamento, foco e a apresentação dos papéis na interface.
+Os testes de cronômetro também verificam o diálogo de tempo esgotado, incluindo
+expiração na última carta, o botão “Ver resultado” e o foco no resultado final.
+
+Evidências atuais no Jenkins local, com `DEPLOY=false` e relatórios arquivados:
+
+- Base antes dos refactorings de Fernando, já com a PR #74 de Mateus:
+  [build #2](http://localhost:8081/job/EntreLinhas-Refactoring-69/2/), commit
+  `5f3a595167e18431ca36cc118cfdf1851ab89168`, **SUCCESS**:
+  81 testes Python, 19 unitários JavaScript e 27 cenários Cypress.
+- Integração depois dos refactorings de Fernando:
+  [build #1](http://localhost:8081/job/EntreLinhas-Refactoring-69/1/), commit
+  `2edc7c833608c6d810dbdb419439287e0875990c`, **SUCCESS**:
+  81 testes Python, 40 unitários JavaScript, 38 cenários Cypress e 9 testes de
+  proteção da CI; cobertura Python agregada de aproximadamente 92%.
+
+O job isolado `EntreLinhas-Refactoring-69` foi recriado em 11/11/2026, com polling
+removido. Por isso a numeração recomeçou em #1. Os builds #4 e #6 da instalação
+anterior, registrados na PR, não estão disponíveis nesta instância; os links
+acima são as evidências acessíveis atuais e exigem acesso ao Jenkins local.
+
+O registro histórico anterior apontava **SUCCESS** para a base `3ee8280`
+(build #4: 73 testes Python, 4 unitários JavaScript e 26 cenários Cypress) e para
+`125471c` (build #6: 73 testes Python, 25 unitários JavaScript e 36 cenários Cypress).
+Esses registros históricos não substituem os novos builds da integração.
+
+A branch incorpora a PR #74 de Mateus (#68), integrada na `main` pelo commit
+`5f3a595167e18431ca36cc118cfdf1851ab89168`. O novo cenário cobre expiração na última
+carta. A validação do commit final que inclui este registro fica vinculada na PR.
+Ainda são necessários aprovação independente e pipeline verde na `main` após o
+merge para encerrar a #69. Nenhum desses builds publicou em produção.
+
 ### Regras e montagem do estado — Caio Rodrigues (issue #66, PR #72)
 
 Refactorings sem mudança de comportamento. Antes de cada um, testes de
