@@ -679,9 +679,20 @@ da dica e o avanço da rodada (3 e 4).
 | 3 | Regra de domínio dentro da rota: `rota_dica` validava a dica em uma condição longa e repetia a mensagem de erro em dois `return` | Extract Function: `dica_valida(dica)` em `backend/jogo.py` | A regra da dica ganha nome e fica junto das outras regras; a rota só lê a entrada e responde | [Issue #8](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/8) (PR a abrir) | Caio Rodrigues |
 | 4 | Código duplicado: o cálculo do próximo índice e da fase (`dica` ou `final`) estava repetido em `_penalizar_tempo` e em `rota_palpite` | Extract Function: `proxima_rodada(progresso)` em `backend/jogo.py` | O fim da partida passa a ser decidido em um só lugar, tanto no palpite quanto no tempo esgotado | [Issue #8](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/8) (PR a abrir) | Caio Rodrigues |
 
-Base das alterações 1 e 2: commit `3ee8280` da `main`; base das alterações 3 e 4:
-commit `57ebb50`. Os links do pipeline verde antes e depois (com `DEPLOY`
-desmarcado) ficam registrados na PR.
+Pipeline do Jenkins antes e depois das alterações 1 e 2, com disparo manual e
+`DEPLOY` desmarcado:
+
+| Momento | SHA | Build | Resultado |
+| --- | --- | --- | --- |
+| Antes (base na `main`) | `3ee82801008e4b722bc8243e3c2bdbefff5ea509` | #4, no Jenkins local do Fernando | SUCCESS |
+| Depois (SHA final da PR #72) | `15f257bf32baa1eb66ae9c3232ddb210072af5ec` | [#2 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/2/), no Jenkins local do Caio | SUCCESS: 21 testes de jogo e baralho, 60 de backend e 26 do Cypress |
+
+Os links apontam para o Jenkins local de quem executou e só abrem nessa máquina;
+os prints dos builds foram compartilhados com a equipe. O commit de integração
+na `main`, `57ebb50`, tem o mesmo conteúdo do SHA final testado.
+
+Base das alterações 3 e 4: commit `57ebb50` da `main`. Os builds dessas duas
+alterações serão registrados aqui quando a PR da issue #8 for aberta.
 
 ### Conexões e inicialização do banco — Henrique Rodrigues Mendonça (issue #67, PR #75)
 
