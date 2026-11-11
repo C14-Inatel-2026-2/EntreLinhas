@@ -35,6 +35,16 @@ def dica_valida(dica):
     )
 
 
+def proxima_rodada(progresso):
+    """Índice e fase depois que a carta atual é jogada ou descartada.
+
+    A partida volta para a fase de dica até a última carta; depois dela, fase final.
+    """
+    novo_indice = progresso["indice"] + 1
+    fase = "final" if novo_indice == len(progresso["cartas"]) else "dica"
+    return novo_indice, fase
+
+
 def segundos_restantes(progresso):
     inicio = progresso.get("turno_inicio")
     if progresso["fase"] != "palpite" or inicio is None:
