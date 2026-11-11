@@ -7,7 +7,7 @@ from db import (
 )
 from jogo import (
     criar_cartas, montar_estado, jogador_da_rodada, tempo_esgotado,
-    calcular_placar, coordenadas_acertadas,
+    calcular_placar, coordenadas_acertadas, dica_valida,
 )
 
 app = Flask(
@@ -105,10 +105,8 @@ def rota_dica(partida_id):
         if progresso["fase"] != "dica":
             return jsonify({"erro": "Não é a vez de enviar uma dica"}), 409
         data = request.get_json(silent=True) or {}
-        if not isinstance(data, dict):
-            return jsonify({"erro": "A dica deve ter uma única palavra de até 60 caracteres"}), 400
-        dica = data.get("dica")
-        if not isinstance(dica, str) or not dica.strip() or len(dica.strip()) > 60 or len(dica.split()) != 1:
+        dica = data.get("dica") if isinstance(data, dict) else None
+        if not dica_valida(dica):
             return jsonify({"erro": "A dica deve ter uma única palavra de até 60 caracteres"}), 400
 
         atualizar_estado(conn, partida_id, progresso["indice"], "palpite", dica.strip())
