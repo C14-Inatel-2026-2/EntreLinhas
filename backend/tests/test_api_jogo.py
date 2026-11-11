@@ -7,6 +7,7 @@ from db import conectar_bd, criar_tabelas
 @pytest.fixture
 def cliente(tmp_path, monkeypatch):
     caminho = tmp_path / "partidas.sqlite3"
+    monkeypatch.setenv("DATABASE_PATH", str(caminho))
 
     def conectar_teste():
         return conectar_bd(str(caminho))
@@ -18,7 +19,6 @@ def cliente(tmp_path, monkeypatch):
     modulo_api.app.config["TESTING"] = True
     with modulo_api.app.test_client() as cliente_flask:
         yield cliente_flask
-
 
 def iniciar(cliente):
     resposta = cliente.post("/partida", json={"num_jogadores": 2})
