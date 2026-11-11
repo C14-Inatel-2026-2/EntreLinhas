@@ -676,8 +676,8 @@ da dica e o avanço da rodada (3 e 4).
 | --- | --- | --- | --- | --- | --- |
 | 1 | Código duplicado: acertos, erros e pontuação final calculados em cinco trechos de `backend/app.py` e em `backend/jogo.py`, ora somando `acertou`, ora contando coordenadas | Extract Function: `calcular_placar` e `coordenadas_acertadas` em `backend/jogo.py`, usadas pela rota `/placar`, pelo palpite, pelo tempo esgotado, pelo encerramento e por `montar_estado` | A regra de pontuação passa a existir em um só lugar; mudar a contagem não exige lembrar de cinco rotas | [PR #72](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/72) | Caio Rodrigues |
 | 2 | Função longa: `montar_estado` monta tabuleiro, placar, tempo, desempenho e resumo | Extract Function: `montar_tabuleiro(palavras, acertos)` em `backend/jogo.py` | Separa a composição da grade 3 × 3 do restante do estado e permite testá-la isoladamente, com o mesmo JSON | [PR #72](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/72) | Caio Rodrigues |
-| 3 | Regra de domínio dentro da rota: `rota_dica` validava a dica em uma condição longa e repetia a mensagem de erro em dois `return` | Extract Function: `dica_valida(dica)` em `backend/jogo.py` | A regra da dica ganha nome e fica junto das outras regras; a rota só lê a entrada e responde | [Issue #8](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/8) (PR a abrir) | Caio Rodrigues |
-| 4 | Código duplicado: o cálculo do próximo índice e da fase (`dica` ou `final`) estava repetido em `_penalizar_tempo` e em `rota_palpite` | Extract Function: `proxima_rodada(progresso)` em `backend/jogo.py` | O fim da partida passa a ser decidido em um só lugar, tanto no palpite quanto no tempo esgotado | [Issue #8](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/8) (PR a abrir) | Caio Rodrigues |
+| 3 | Regra de domínio dentro da rota: `rota_dica` validava a dica em uma condição longa e repetia a mensagem de erro em dois `return` | Extract Function: `dica_valida(dica)` em `backend/jogo.py` | A regra da dica ganha nome e fica junto das outras regras; a rota só lê a entrada e responde | [PR #76](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/76) | Caio Rodrigues |
+| 4 | Código duplicado: o cálculo do próximo índice e da fase (`dica` ou `final`) estava repetido em `_penalizar_tempo` e em `rota_palpite` | Extract Function: `proxima_rodada(progresso)` em `backend/jogo.py` | O fim da partida passa a ser decidido em um só lugar, tanto no palpite quanto no tempo esgotado | [PR #76](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/76) | Caio Rodrigues |
 
 Pipeline do Jenkins antes e depois das alterações 1 e 2, com disparo manual e
 `DEPLOY` desmarcado:
@@ -692,7 +692,7 @@ os prints dos builds foram compartilhados com a equipe. O commit de integração
 na `main`, `57ebb50`, tem o mesmo conteúdo do SHA final testado.
 
 Base das alterações 3 e 4: commit `57ebb50` da `main`. Os builds dessas duas
-alterações serão registrados aqui quando a PR da issue #8 for aberta.
+alterações serão registrados aqui após a execução no SHA final da PR #76.
 
 ### Conexões e inicialização do banco — Henrique Rodrigues Mendonça (issue #67, PR #75)
 
