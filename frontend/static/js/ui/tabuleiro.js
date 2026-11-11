@@ -102,11 +102,23 @@ export function selecionarCelula(coordenada, podeSelecionar) {
   atualizarSelecao(podeSelecionar);
 }
 
-/* Delegação: um listener atende todas as células, inclusive após renderizar a rodada. */
 export function vincularSelecao(aoSelecionar) {
   const grade = elemento("tabuleiro");
+  
+  // Trata cliques do rato
   grade.addEventListener("click", (evento) => {
     const celula = evento.target.closest(SELETOR_CELULAS);
     if (celula && grade.contains(celula)) aoSelecionar(celula.dataset.coordenada);
+  });
+
+  // Trata ativação por teclado (Enter ou Espaço) nas células do tabuleiro
+  grade.addEventListener("keydown", (evento) => {
+    if (evento.key === "Enter" || evento.key === " ") {
+      const celula = evento.target.closest(SELETOR_CELULAS);
+      if (celula && grade.contains(celula)) {
+        evento.preventDefault(); // Evita comportamento padrão de scroll com espaço ou submissões indesejadas
+        aoSelecionar(celula.dataset.coordenada);
+      }
+    }
   });
 }
