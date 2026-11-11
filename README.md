@@ -148,11 +148,18 @@ serve o frontend e encaminha as chamadas ao backend.
 | --- | --- |
 | `frontend/static/js/app.js` | Fluxo de telas, turnos, feedback e interação com a partida |
 | `frontend/static/js/services/api.js` | Comunicação HTTP com a API |
-| `backend/app.py` | Rotas, validações e coordenação das operações |
-| `backend/jogo.py` | Montagem do estado retornado à interface e cartas da partida |
+| `backend/app.py` | Rotas HTTP, validação das entradas e coordenação entre regras e banco |
+| `backend/jogo.py` | Regras usadas pela API (dica, avanço da rodada, tempo, placar e desempenho) e montagem do estado |
 | `backend/db.py` | Inicialização, consultas e persistência SQLite |
 | `backend/palavras.py` | Catálogo inicial de palavras |
-| `backend/src/` | Classes de domínio e execução de terminal; a API usa também `backend/jogo.py` |
+| `backend/src/` | Classes de domínio em memória (`Baralho`, `Tabuleiro`, `Jogo`) e execução de terminal; a API usa apenas `Baralho` |
+
+As regras usadas pela API têm uma única implementação, em `backend/jogo.py`,
+como funções sem estado: cada requisição lê a partida do SQLite, aplica a regra
+e grava o resultado. A classe `Jogo` de `backend/src/jogo.py` guarda a partida
+em memória e, por isso, não é usada pela API; permanece como modelo de domínio,
+coberta por `backend/tests/test_jogo.py` no stage de testes de jogo e baralho
+([issue #8](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/8)).
 
 | Método e rota | Entrada / resultado |
 | --- | --- |
@@ -327,14 +334,13 @@ que dependam do ID de um serviço Railway.
 | RF-TUR-02 | Cada rodada segue as fases dica → palpite; ações fora da fase são recusadas com 409 | `test_api_rejeita_dica_invalida_e_palpite_fora_de_fase` |
 | RF-TUR-03 | A interface indica quem dá a dica e quem adivinha; com três ou mais jogadores, quem deu a dica não participa do palpite | Cypress `interface-partida.cy.js` |
 | RF-DIC-01 | Na fase de dica, a API envia a carta secreta ao jogador da vez; na fase de palpite, não a envia | `test_dica_palpite_e_placar_sao_persistidos` |
-| RF-DIC-02 | A dica deve ter uma única palavra, sem espaços, não vazia e com até 60 caracteres; caso contrário, é recusada com 400 | `test_api_rejeita_dica_invalida_e_palpite_fora_de_fase`; Cypress `partida.cy.js` |
+| RF-DIC-02 | A dica deve ter uma única palavra, sem espaços, não vazia e com até 60 caracteres; caso contrário, é recusada com 400 | `test_dica_invalida_e_recusada_sem_mudar_a_fase`, `test_api_rejeita_dica_invalida_e_palpite_fora_de_fase`; Cypress `partida.cy.js` |
 | RF-DIC-03 | Uma dica válida muda a partida para a fase de palpite e é exibida aos demais | `test_dica_palpite_e_placar_sao_persistidos` |
 | RF-DIC-04 | A dica é gravada com a jogada (jogador, coordenada correta e tentada) | `test_dica_e_gravada_junto_com_a_jogada` |
 
 Limitações: não há autenticação, então a identificação do jogador da vez ocorre
 apenas na interface. A regra de palavra única considera separadores em branco, de modo
-que palavras com hífen são aceitas. A API recusa dicas vazias ou acima de 60
-caracteres, mas os testes de API cobrem apenas o caso de duas palavras.
+que palavras com hífen são aceitas.
 
 ## Testes
 
@@ -703,19 +709,43 @@ carta. A validação do commit final que inclui este registro fica vinculada na 
 Ainda são necessários aprovação independente e pipeline verde na `main` após o
 merge para encerrar a #69. Nenhum desses builds publicou em produção.
 
-### Regras e montagem do estado — Caio Rodrigues (issue #66, PR #72)
+### Regras e montagem do estado — Caio Rodrigues (issues #66 e #8, PRs #72 e #76)
 
 Refactorings sem mudança de comportamento. Antes de cada um, testes de
-caracterização em `backend/tests/test_placar_tabuleiro.py` fixaram os números
-do placar e o JSON completo de `montar_estado`; os mesmos testes passam depois.
+caracterização fixaram o comportamento, e os mesmos testes passam depois:
+`backend/tests/test_placar_tabuleiro.py` para o placar e o JSON completo de
+`montar_estado` (1 e 2) e `backend/tests/test_regras_rodada.py` para a regra
+da dica e o avanço da rodada (3 e 4).
 
 | # | Smell | Refactoring aplicado | Por quê | PR | Autoria |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Código duplicado: acertos, erros e pontuação final calculados em cinco trechos de `backend/app.py` e em `backend/jogo.py`, ora somando `acertou`, ora contando coordenadas | Extract Function: `calcular_placar` e `coordenadas_acertadas` em `backend/jogo.py`, usadas pela rota `/placar`, pelo palpite, pelo tempo esgotado, pelo encerramento e por `montar_estado` | A regra de pontuação passa a existir em um só lugar; mudar a contagem não exige lembrar de cinco rotas | [PR #72](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/72) | Caio Rodrigues |
 | 2 | Função longa: `montar_estado` monta tabuleiro, placar, tempo, desempenho e resumo | Extract Function: `montar_tabuleiro(palavras, acertos)` em `backend/jogo.py` | Separa a composição da grade 3 × 3 do restante do estado e permite testá-la isoladamente, com o mesmo JSON | [PR #72](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/72) | Caio Rodrigues |
+| 3 | Regra de domínio dentro da rota: `rota_dica` validava a dica em uma condição longa e repetia a mensagem de erro em dois `return` | Extract Function: `dica_valida(dica)` em `backend/jogo.py` | A regra da dica ganha nome e fica junto das outras regras; a rota só lê a entrada e responde | [PR #76](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/76) | Caio Rodrigues |
+| 4 | Código duplicado: o cálculo do próximo índice e da fase (`dica` ou `final`) estava repetido em `_penalizar_tempo` e em `rota_palpite` | Extract Function: `proxima_rodada(progresso)` em `backend/jogo.py` | O fim da partida passa a ser decidido em um só lugar, tanto no palpite quanto no tempo esgotado | [PR #76](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/76) | Caio Rodrigues |
 
-Base das alterações: commit `3ee8280` da `main`. Os links do pipeline verde
-antes e depois (com `DEPLOY` desmarcado) ficam registrados na PR.
+Pipeline do Jenkins antes e depois das alterações 1 e 2, com disparo manual e
+`DEPLOY` desmarcado:
+
+| Momento | SHA | Build | Resultado |
+| --- | --- | --- | --- |
+| Antes (base na `main`) | `3ee82801008e4b722bc8243e3c2bdbefff5ea509` | #4, no Jenkins local do Fernando | SUCCESS |
+| Depois (SHA final da PR #72) | `15f257bf32baa1eb66ae9c3232ddb210072af5ec` | [#2 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/2/), no Jenkins local do Caio | SUCCESS: 21 testes de jogo e baralho, 60 de backend e 26 do Cypress |
+
+Os links apontam para o Jenkins local de quem executou e só abrem nessa máquina;
+os prints dos builds foram compartilhados com a equipe. O commit de integração
+na `main`, `57ebb50`, tem o mesmo conteúdo do SHA final testado.
+
+Pipeline do Jenkins antes e depois das alterações 3 e 4, no Jenkins local do
+Caio, com disparo manual e `DEPLOY` desmarcado:
+
+| Momento | SHA | Build | Resultado |
+| --- | --- | --- | --- |
+| Antes (base na `main`) | `57ebb50d9e8c8bd60e50232cd2a045a41241f2c8`, de conteúdo idêntico ao do `15f257b` | [#2 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/2/), executado no `15f257b` | SUCCESS: 21 testes de jogo e baralho, 60 de backend e 26 do Cypress |
+| Depois (PR #76) | `54bccbca64b36de4957fc557f090c000201e60cf` | [#3 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/3/) | SUCCESS: 21 testes de jogo e baralho, 78 de backend e 26 do Cypress |
+
+O build #3 testou o último commit da PR #76 antes deste registro; o commit que
+acrescenta esta tabela altera apenas o README.
 
 ### Conexões e inicialização do banco — Henrique Rodrigues Mendonça (issue #67, PR #75)
 
@@ -811,10 +841,11 @@ A existência de um commit de autoria humana não comprova ausência de auxílio
 - [ ] Executar o pipeline no SHA final e apresentar os relatórios daquela versão.
 - [ ] Preparar todos os integrantes para demonstrar código, testes, commits, PRs e decisões em uma defesa Q&A de até 20 minutos.
 
-Limitações técnicas já acompanhadas: unificação/documentação das regras entre
-`backend/jogo.py` e `backend/src/jogo.py` ([issue #8](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/8)),
+A separação entre `backend/jogo.py` e `backend/src/jogo.py` está descrita em
+[Arquitetura e API](#arquitetura-e-api) ([issue #8](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/8)).
+Limitações técnicas ainda acompanhadas: dimensão 5 × 5 da classe `Tabuleiro` ([issue #14](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/14)),
 transações e recuperação completa do estado ([issue #9](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/9))
-e validação após essa integração ([issue #13](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/13)).
+e validação da partida completa com a API real ([issue #13](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/13)).
 Persistir dados no SQLite não equivale a oferecer retomada completa da partida
 pela interface após recarregar a página.
 

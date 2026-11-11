@@ -23,6 +23,26 @@ def jogador_da_rodada(partida, progresso):
     return progresso["indice"] % partida["num_jogadores"] + 1
 
 TEMPO_PALPITE = 120
+TAMANHO_MAXIMO_DICA = 60
+
+
+def dica_valida(dica):
+    """A dica é uma única palavra, com até 60 caracteres sem os espaços das pontas."""
+    return (
+        isinstance(dica, str)
+        and len(dica.split()) == 1
+        and len(dica.strip()) <= TAMANHO_MAXIMO_DICA
+    )
+
+
+def proxima_rodada(progresso):
+    """Índice e fase depois que a carta atual é jogada ou descartada.
+
+    A partida volta para a fase de dica até a última carta; depois dela, fase final.
+    """
+    novo_indice = progresso["indice"] + 1
+    fase = "final" if novo_indice == len(progresso["cartas"]) else "dica"
+    return novo_indice, fase
 
 
 def segundos_restantes(progresso):
