@@ -664,7 +664,52 @@ aprendidas. Os exemplos acima são evidências técnicas, não depoimentos dos m
 
 ## Refactorings
 
-### Regras e montagem do estado — Caio Rodrigues (issues #66 e #8)
+### Diálogos e participantes do turno — Fernando Stein (issue #69, PR #73)
+
+Entrega de Fernando Stein (@Stenishh), tarefa [#69](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/69),
+implementada na [PR #73](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/73).
+
+| Smell identificado | Refactoring aplicado | Motivo e comportamento preservado |
+| --- | --- | --- |
+| `app.js` concentrava apresentação, eventos e foco dos diálogos junto do estado e das chamadas à API. | **Extract Module:** extrair `frontend/static/js/ui/dialogos.js`. | Concentrar o ciclo de vida dos diálogos em um módulo que recebe nome, fase e retorno de foco. Preserva os textos de início, acerto, erro e tempo esgotado, o fechamento por botão/Escape e o foco após fechar; não move o estado da partida. |
+| `renderizarPartida` misturava criação de elementos com cálculo dos participantes ativos e de seus papéis. | **Extract Function:** extrair `obterParticipantesDoTurno` em `frontend/static/js/utils/turno.js`. | Permitir testar a decisão sem DOM. Preserva nomes, ordem, autor da dica, palpite da outra pessoa em dupla, palpite coletivo com 3 a 6 pessoas e ausência de participantes ativos na fase final. |
+
+Os testes unitários em `frontend/tests/turno.test.mjs` cobrem todos os autores de
+dica possíveis em equipes de 2 a 6 jogadores, nas fases dica, palpite e final.
+Os cenários Cypress em `dialogos.cy.js` e `participantes-turno.cy.js` verificam
+abertura, fechamento, foco e a apresentação dos papéis na interface.
+Os testes de cronômetro também verificam o diálogo de tempo esgotado, incluindo
+expiração na última carta, o botão “Ver resultado” e o foco no resultado final.
+
+Evidências atuais no Jenkins local, com `DEPLOY=false` e relatórios arquivados:
+
+- Base antes dos refactorings de Fernando, já com a PR #74 de Mateus:
+  [build #2](http://localhost:8081/job/EntreLinhas-Refactoring-69/2/), commit
+  `5f3a595167e18431ca36cc118cfdf1851ab89168`, **SUCCESS**:
+  81 testes Python, 19 unitários JavaScript e 27 cenários Cypress.
+- Integração depois dos refactorings de Fernando:
+  [build #1](http://localhost:8081/job/EntreLinhas-Refactoring-69/1/), commit
+  `2edc7c833608c6d810dbdb419439287e0875990c`, **SUCCESS**:
+  81 testes Python, 40 unitários JavaScript, 38 cenários Cypress e 9 testes de
+  proteção da CI; cobertura Python agregada de aproximadamente 92%.
+
+O job isolado `EntreLinhas-Refactoring-69` foi recriado em 11/11/2026, com polling
+removido. Por isso a numeração recomeçou em #1. Os builds #4 e #6 da instalação
+anterior, registrados na PR, não estão disponíveis nesta instância; os links
+acima são as evidências acessíveis atuais e exigem acesso ao Jenkins local.
+
+O registro histórico anterior apontava **SUCCESS** para a base `3ee8280`
+(build #4: 73 testes Python, 4 unitários JavaScript e 26 cenários Cypress) e para
+`125471c` (build #6: 73 testes Python, 25 unitários JavaScript e 36 cenários Cypress).
+Esses registros históricos não substituem os novos builds da integração.
+
+A branch incorpora a PR #74 de Mateus (#68), integrada na `main` pelo commit
+`5f3a595167e18431ca36cc118cfdf1851ab89168`. O novo cenário cobre expiração na última
+carta. A validação do commit final que inclui este registro fica vinculada na PR.
+Ainda são necessários aprovação independente e pipeline verde na `main` após o
+merge para encerrar a #69. Nenhum desses builds publicou em produção.
+
+### Regras e montagem do estado — Caio Rodrigues (issues #66 e #8, PRs #72 e #76)
 
 Refactorings sem mudança de comportamento. Antes de cada um, testes de
 caracterização fixaram o comportamento, e os mesmos testes passam depois:
@@ -719,6 +764,22 @@ acrescenta esta tabela altera apenas o README.
 - **Por quê:** Melhora a legibilidade, isola responsabilidades de infraestrutura de dados e garante idempotência limpa na subida da API.
 - **Autor:** Henrique Rodrigues Mendonça
 - **PR:** [#75](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/75)
+
+### Tabuleiro da interface — Mateus Mendonça (issue #68, PR #74)
+
+Refactorings sem mudança de comportamento. Antes de cada um, testes de
+caracterização em `frontend/tests/tabuleiro.test.mjs` e um cenário em
+`frontend/cypress/e2e/interface-partida.cy.js` fixaram a estrutura da grade,
+a seleção única, o foco e os atributos de acessibilidade; os mesmos testes
+passam depois.
+
+| # | Smell | Refactoring aplicado | Por quê | PR | Autoria |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Módulo com várias responsabilidades: `frontend/static/js/app.js` reúne navegação, estado da partida e a renderização e seleção do tabuleiro | Extract Module: `frontend/static/js/ui/tabuleiro.js`, com interface explícita (`renderizarTabuleiro`, `selecionarCelula`, `atualizarSelecao`, `obterCelulaSelecionada`, `obterCelulaParaFoco`, `vincularSelecao`) | O tabuleiro deixa de depender das variáveis globais do `app.js` (recebe `podeSelecionar` por parâmetro), pode ser testado sem navegador e libera o `app.js` para a extração da PR de Fernando | [PR #74](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/74) | Mateus Mendonça |
+| 2 | Função longa: `renderizarTabuleiro` monta cabeçalhos, linhas e células em uma única função | Extract Function: `criarCabecalho`, `criarLinha` e `criarCelulaDeCoordenada` em `frontend/static/js/ui/tabuleiro.js` | Cada função monta um nível da grade (cabeçalho, linha, célula), o que facilita testar a estrutura e os atributos ARIA isoladamente, com o mesmo DOM | [PR #74](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/74) | Mateus Mendonça |
+
+Base das alterações: commit `3ee8280` da `main`. Os links do pipeline verde
+antes e depois (com `DEPLOY` desmarcado) ficam registrados na PR.
 
 ## Uso de IA
 

@@ -1,8 +1,11 @@
 /* Entrada da SPA: estado da interface, navegação, tabuleiro e eventos de jogo. */
+import { configurarDialogos, focarDialogoAberto, mostrarInicioTurno, mostrarResultadoPalpite, mostrarTempoEsgotado } from "./ui/dialogos.js";
 import { chamarAPI } from "./services/api.js";
 import { elemento } from "./utils/dom.js";
+import { obterParticipantesDoTurno } from "./utils/turno.js";
 import { validarPlacar, validarEstado } from "./utils/validacao.js";
 import { obterCamposDeNomes, validarNomes, renderizarCamposDeNomes } from "./ui/jogadores.js";
+import {renderizarTabuleiro, atualizarSelecao, selecionarCelula,obterCelulaSelecionada, obterCelulaParaFoco, vincularSelecao} from "./ui/tabuleiro.js";
 
 let partida = null;
 let ocupado = false;
@@ -13,12 +16,14 @@ let intervaloTempo = null;
 let timerExpiracao = null;
 let chaveTurno = null;
 
+  const podeSelecionar = () => !ocupado && partida?.fase === "palpite";
+
 function definirLoading(valor) {
   ocupado = valor;
   elemento("loading").hidden = !valor;
   elemento("aplicativo").setAttribute("aria-busy", String(valor));
   document.querySelectorAll("button, input").forEach((controle) => { controle.disabled = valor; });
-  atualizarSelecao();
+  atualizarSelecao(podeSelecionar()); 
 }
 
 async function executarAcao(acao) {
@@ -47,114 +52,19 @@ function mostrarTela(id) {
 }
 
 function focarTela() {
-  if (elemento("inicio-turno").open) {
-    elemento("continuar-turno").focus();
-    return;
-  }
-  if (elemento("resultado-palpite").open) {
-    elemento("continuar-palpite").focus();
-    return;
-  }
+  if (focarDialogoAberto()) return;
   if (telaAtual === "tela-nomes-jogadores") {
     elemento("titulo-nomes").focus();
     return;
   }
   if (telaAtual === "tela-jogo" && partida.fase === "palpite") {
-    const celula = elemento("tabuleiro").querySelector(".celula-selecionada")
-      || elemento("tabuleiro").querySelector("button[data-coordenada]:not(:disabled)");
-    (celula || elemento("titulo-jogo")).focus();
+    (obterCelulaParaFoco() || elemento("titulo-jogo")).focus();
     return;
   }
   const alvo = telaAtual === "tela-jogo"
     ? "revelar-carta"
     : (telaAtual === "tela-final" ? "titulo-final" : "titulo-inicial");
   elemento(alvo).focus();
-}
-
-function criarCelula(texto, classe, papel, detalhe, tag = "div") {
-  const celula = document.createElement(tag);
-  celula.className = `celula ${classe}`;
-  celula.setAttribute("role", papel);
-  // textContent mantém palavras e mensagens da API como texto, nunca como HTML.
-  celula.textContent = texto;
-  if (detalhe) {
-    const pequeno = document.createElement("small");
-    pequeno.textContent = detalhe;
-    celula.append(pequeno);
-  }
-  return celula;
-}
-
-function renderizarTabuleiro(tabuleiro, anteriores = new Set()) {
-  const grade = elemento("tabuleiro");
-  const fragmento = document.createDocumentFragment();
-  const cabecalho = document.createElement("div");
-  cabecalho.className = "linha-tabuleiro";
-  cabecalho.setAttribute("role", "row");
-  cabecalho.append(criarCelula("↓ linha", "celula-canto", "columnheader", "coluna →"));
-  tabuleiro.colunas.forEach((coluna) => cabecalho.append(criarCelula(coluna.id, "celula-cabecalho", "columnheader", coluna.palavra)));
-  fragmento.append(cabecalho);
-  const celulas = new Map(tabuleiro.celulas.map((celula) => [celula.coordenada, celula]));
-  tabuleiro.linhas.forEach((linha) => {
-    const faixa = document.createElement("div");
-    faixa.className = "linha-tabuleiro";
-    faixa.setAttribute("role", "row");
-    faixa.append(criarCelula(linha.id, "celula-cabecalho", "rowheader", linha.palavra));
-    tabuleiro.colunas.forEach((coluna) => {
-      const coordenada = `${linha.id}${coluna.id}`;
-      const acerto = celulas.get(coordenada)?.estado === "acerto";
-      const classe = acerto ? `celula-acerto${anteriores.has(coordenada) ? "" : " novo-acerto"}` : "celula-vazia";
-      const celula = criarCelula(coordenada, classe, acerto ? "cell" : "button", acerto ? "✓ acerto" : "", acerto ? "div" : "button");
-      celula.dataset.coordenada = coordenada;
-      celula.setAttribute("aria-label", `${acerto ? "Carta posicionada em" : "Selecionar coordenada"} ${coordenada}: ${linha.palavra} e ${coluna.palavra}`);
-      if (acerto) {
-        faixa.append(celula);
-      } else {
-        // O botão nativo responde a Enter/Espaço. O contêiner mantém a semântica da tabela.
-        celula.type = "button";
-        celula.setAttribute("aria-pressed", "false");
-        const espaco = document.createElement("div");
-        espaco.className = "espaco-celula";
-        espaco.setAttribute("role", "cell");
-        espaco.append(celula);
-        faixa.append(espaco);
-      }
-    });
-    fragmento.append(faixa);
-  });
-  grade.replaceChildren(fragmento);
-  atualizarSelecao();
-}
-
-function obterCelulaSelecionada() {
-  return elemento("tabuleiro").querySelector("button[data-coordenada].celula-selecionada");
-}
-
-function atualizarSelecao() {
-  const podeSelecionar = !ocupado && partida?.fase === "palpite";
-  elemento("tabuleiro").querySelectorAll("button[data-coordenada]").forEach((celula) => {
-    celula.disabled = !podeSelecionar;
-  });
-  const selecionada = obterCelulaSelecionada();
-  elemento("confirmar-palpite").disabled = !podeSelecionar || !selecionada;
-  elemento("selecao-palpite").textContent = selecionada
-    ? `Coordenada selecionada: ${selecionada.dataset.coordenada}.`
-    : "Nenhuma coordenada selecionada.";
-}
-
-function selecionarCelula(coordenada) {
-  if (ocupado || partida?.fase !== "palpite") return;
-  const celulas = [...elemento("tabuleiro").querySelectorAll("button[data-coordenada]")];
-  const alvo = celulas.find((celula) => celula.dataset.coordenada === coordenada);
-  if (!alvo || alvo.disabled) return;
-  const selecionar = !alvo.classList.contains("celula-selecionada");
-  // Uma única seleção; repetir o clique na mesma coordenada limpa o palpite.
-  celulas.forEach((celula) => {
-    const marcada = celula === alvo && selecionar;
-    celula.classList.toggle("celula-selecionada", marcada);
-    celula.setAttribute("aria-pressed", String(marcada));
-  });
-  atualizarSelecao();
 }
 
 function renderizarPlacar(placar) {
@@ -252,22 +162,18 @@ function renderizarPartida(dados) {
   partida = dados;
   ocultarCarta();
   renderizarPlacar(dados.placar);
-  renderizarTabuleiro(dados.tabuleiro, anteriores);
+  renderizarTabuleiro(dados.tabuleiro, anteriores, podeSelecionar()); 
   elemento("form-dica").hidden = dados.fase !== "dica";
   elemento("form-palpite").hidden = dados.fase !== "palpite";
-  const jogadorDica = nomesJogadores[dados.jogador_dica - 1] || `Jogador ${dados.jogador_dica}`;
-  const indicePalpite = dados.jogador_dica % nomesJogadores.length;
-  const emDupla = nomesJogadores.length === 2;
-  const jogadorPalpite = emDupla ? nomesJogadores[indicePalpite] : "Vez do time";
-  const jogadores = nomesJogadores.map((nome, indice) => {
-    const dandoDica = indice + 1 === dados.jogador_dica;
-    const ativo = dados.fase === "dica" ? dandoDica : dados.fase === "palpite" && !dandoDica;
+  const { jogadorDica, jogadorPalpite, emDupla, jogadores: participantes } =
+    obterParticipantesDoTurno(nomesJogadores, dados.jogador_dica, dados.fase);
+  const jogadores = participantes.map(({ nome, ativo, situacao: descricao }) => {
     const item = document.createElement("li");
     item.className = `jogador-turno ${ativo ? "jogador-turno-ativo" : "jogador-turno-aguardando"}`;
     const identificacao = document.createElement("strong");
     identificacao.textContent = nome;
     const situacao = document.createElement("span");
-    situacao.textContent = ativo ? (dados.fase === "dica" ? "Dando a dica" : "Adivinhando") : "Aguardando";
+    situacao.textContent = descricao;
     item.append(identificacao, situacao);
     return item;
   });
@@ -292,7 +198,7 @@ function renderizarPartida(dados) {
     : "";
   mostrarTela(dados.fase === "final" ? "tela-final" : "tela-jogo");
   mostrarDesempenho(dados.desempenho);
-  if (dados.mensagem?.startsWith("Tempo esgotado")) mostrarTempoEsgotado();
+  if (dados.mensagem?.startsWith("Tempo esgotado")) mostrarTempoEsgotado(dados.fase);
 }
 
 function abrirTelaDeNomes(evento) {
@@ -326,11 +232,7 @@ async function iniciarPartida(nomes) {
     nomesJogadores = [...nomes];
     renderizarPartida(dados);
     if (dados.fase !== "final") {
-      elemento("nome-inicio-turno").textContent = elemento("nome-turno").textContent;
-      elemento("descricao-inicio-turno").textContent = dados.fase === "palpite"
-        ? "Você dá o primeiro palpite com a ajuda do time."
-        : "Você começa dando a dica. Só você pode ver a carta secreta!";
-      elemento("inicio-turno").showModal();
+      mostrarInicioTurno(elemento("nome-turno").textContent, dados.fase);
     }
   });
 }
@@ -354,21 +256,9 @@ async function enviarPalpite(evento) {
     const dados = await chamarAPI(`/partida/${encodeURIComponent(partida.id)}/palpite`, "POST", { palpite: coordenada });
     renderizarPartida(dados);
     if (dados.mensagem?.startsWith("Tempo esgotado")) return;
-    if (dados.placar.acertos > placarAnterior.acertos) mostrarResultadoPalpite(true);
-    else if (dados.placar.erros > placarAnterior.erros) mostrarResultadoPalpite(false);
+    if (dados.placar.acertos > placarAnterior.acertos) mostrarResultadoPalpite(true, partida.fase);
+    else if (dados.placar.erros > placarAnterior.erros) mostrarResultadoPalpite(false, partida.fase);
   });
-}
-
-function mostrarResultadoPalpite(acertou) {
-  const popup = elemento("resultado-palpite");
-  popup.dataset.resultado = acertou ? "acerto" : "erro";
-  elemento("icone-palpite").textContent = acertou ? "✓" : "×";
-  elemento("titulo-palpite").textContent = acertou ? "Acertou!" : "Errou!";
-  elemento("descricao-palpite").textContent = acertou
-    ? "Boa conexão! Mais uma carta posicionada no tabuleiro."
-    : "Essa não era a coordenada. A carta foi descartada, mas cada ideia conta!";
-  elemento("continuar-palpite").textContent = partida.fase === "final" ? "Ver resultado" : "Continuar";
-  popup.showModal();
 }
 
 function mostrarDesempenho(desempenho) {
@@ -380,16 +270,6 @@ function mostrarDesempenho(desempenho) {
   elemento("cartas-restantes").textContent = desempenho.cartas_restantes
     ? `${desempenho.cartas_restantes} de ${desempenho.total_cartas} cartas ficaram sem jogar.`
     : `Todas as ${desempenho.total_cartas} cartas foram jogadas.`;
-}
-
-function mostrarTempoEsgotado() {
-  const popup = elemento("resultado-palpite");
-  popup.dataset.resultado = "erro";
-  elemento("icone-palpite").textContent = "⏱";
-  elemento("titulo-palpite").textContent = "Tempo esgotado!";
-  elemento("descricao-palpite").textContent = "A carta foi descartada e um erro foi adicionado ao placar.";
-  elemento("continuar-palpite").textContent = partida.fase === "final" ? "Ver resultado" : "Continuar";
-  popup.showModal();
 }
 
 async function encerrarJogo() {
@@ -434,22 +314,9 @@ elemento("campos-nomes").addEventListener("input", () => validarNomes());
 elemento("voltar-nomes").addEventListener("click", voltarParaInicio);
 elemento("form-dica").addEventListener("submit", enviarDica);
 elemento("form-palpite").addEventListener("submit", enviarPalpite);
-// Delegação: um listener atende todas as células, inclusive após renderizar a rodada.
-elemento("tabuleiro").addEventListener("click", (evento) => {
-  const celula = evento.target.closest("button[data-coordenada]");
-  if (celula && elemento("tabuleiro").contains(celula)) selecionarCelula(celula.dataset.coordenada);
-});
+vincularSelecao((coordenada) => selecionarCelula(coordenada, podeSelecionar()));
 elemento("revelar-carta").addEventListener("click", revelarCarta);
 elemento("atualizar-placar").addEventListener("click", atualizarPlacar);
 elemento("encerrar-jogo").addEventListener("click", encerrarJogo);
-elemento("continuar-palpite").addEventListener("click", () => elemento("resultado-palpite").close());
-elemento("continuar-turno").addEventListener("click", () => elemento("inicio-turno").close());
-elemento("inicio-turno").addEventListener("close", focarTela);
-elemento("resultado-palpite").addEventListener("keydown", (evento) => {
-  if (evento.key === "Escape") {
-    evento.preventDefault();
-    elemento("resultado-palpite").close();
-  }
-});
-elemento("resultado-palpite").addEventListener("close", focarTela);
+configurarDialogos(focarTela);
 elemento("jogar-novamente").addEventListener("click", jogarNovamente);
