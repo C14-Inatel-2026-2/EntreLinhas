@@ -80,8 +80,7 @@ describe("Interface da partida: validação, erros e resultado", () => {
       cy.get("#selecao-palpite").should("have.text", "Coordenada selecionada: C3.");
 
       // Ativação por teclado (Enter) alterna a seleção: repetir limpa o palpite.
-      cy.get('button[data-coordenada="C3"]').focus();
-      cy.press(Cypress.Keyboard.Keys.ENTER);
+      cy.get('button[data-coordenada="C3"]').focus().type("{enter}");
       cy.get("#tabuleiro .celula-selecionada").should("have.length", 0);
       cy.get("#confirmar-palpite").should("be.disabled");
       cy.get("#selecao-palpite").should("have.text", "Nenhuma coordenada selecionada.");
