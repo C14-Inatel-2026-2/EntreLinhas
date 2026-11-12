@@ -64,3 +64,13 @@ def test_palpite_partida_inexistente_retorna_404(cliente_flask):
     assert res.status_code == 404
     dados = res.get_json()
     assert dados["erro"] == "Partida não encontrada"
+
+# teste com mock: simula a tentativa de registrar um palpite (US02) em partida inexistente sem tocar no banco
+@patch("app.consultar_partida")
+def test_registrar_palpite_partida_inexistente_com_mock(mock_consultar, cliente_flask):
+    mock_consultar.return_value = None
+
+    res = cliente_flask.post("/partida/1/palpite", json={"palpite": "A1"})
+    assert res.status_code == 404
+    dados = res.get_json()
+    assert dados["erro"] == "Partida não encontrada"
