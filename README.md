@@ -736,6 +736,8 @@ Os links apontam para o Jenkins local de quem executou e só abrem nessa máquin
 por isso os prints do fim do console ficam em `docs/evidencias/`. O commit de
 integração na `main`, `57ebb50`, tem o mesmo conteúdo do SHA final testado.
 
+![Build #4 no Jenkins local do Fernando: CI aprovada no SHA 3ee8280](docs/evidencias/jenkins-build-4-fernando.png)
+
 ![Build #2 do job EntreLinhas-Deploy: CI aprovada no SHA 15f257b](docs/evidencias/jenkins-build-2.png)
 
 Pipeline do Jenkins antes e depois das alterações 3 e 4, no Jenkins local do
