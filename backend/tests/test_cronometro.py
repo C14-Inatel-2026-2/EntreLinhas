@@ -124,13 +124,17 @@ def test_palpite_tem_dois_minutos_apenas_apos_dica(cliente, segundos, expirou, e
             assert dados["placar"]["erros"] == 1
             assert dados["turno"] == 1
             assert dados["fase"] == "dica"
+            assert dados["tempo_restante"] is None
             
             resposta_repetida = cliente.post(f"{rota}/tempo", json=payload).get_json()
             assert resposta_repetida["placar"]["erros"] == 1
+            assert resposta_repetida["turno"] == 1
         else:
-            assert dados["placar"]["erros"] == 0  
+            assert dados["placar"]["erros"] == 0
+            if endpoint == "palpite":
+                assert dados["placar"]["acertos"] == 1
+                
         relogio.assert_called()
-
 
 def test_expiracao_da_ultima_carta_finaliza_e_preserva_duracao(cliente):
     estado = cliente.post("/partida", json={"num_jogadores": 2}).get_json()
