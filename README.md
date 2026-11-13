@@ -1137,6 +1137,8 @@ melhorias foram pensadas e definidas pelo grupo. Os integrantes usaram a IA
 para transformar essas decisões em código e apoiar os ajustes ao longo do
 desenvolvimento.
 
+Além disso, o integrante Mateus Mendonça utilizou o **Gemini 3.5 Flash Lite** para suporte ao desenvolvimento e refatoração do módulo de tabuleiro e grade (`tabuleiro.py`), estabilização de testes E2E com Cypress, configuração do pipeline no Jenkins e ajustes de lógica e asserções com mocks nos testes do cronômetro (`backend/tests/test_cronometro.py`).
+
 ### Finalidades e dinâmica de uso
 
 A ferramenta auxiliou na geração e no ajuste de código, refatorações, testes,
@@ -1184,6 +1186,8 @@ não atribuem esses mesmos prompts aos demais integrantes.
 | “atualize a main e veja a pr do caio para poder aceitar ela” | A IA identificou a PR #76, examinou o diff e executou os testes em uma cópia isolada para preservar alterações locais. A recomendação de integração foi **aceita**: o responsável também instruiu “aprove e faca o merge”, e a PR foi integrada. Foram registrados 99 testes Python, 9 de proteção da CI, 40 unitários JavaScript e 38 Cypress aprovados. |
 | “pq existe static/js/mocks se n tem nada?” | A investigação foi **ajustada após conferir o caminho**: a primeira consulta em `frontend/static/js/mocks` não encontrou a pasta; a busca seguinte localizou `static/js/mocks` na raiz, vazia, sem arquivos versionados ou referências encontradas. A resposta explicou que os mocks HTTP usados nos testes estão no Cypress. A pasta não foi removida nessa consulta. |
 | “preencha essa parte, foram usadas individualemnte” | A documentação foi **ajustada com a informação fornecida pelo integrante**: uso individual da IA. Os exemplos anteriores eram resumos; foram substituídos por prompts reais desta sessão e pelo registro do tratamento das respostas. Também se distinguiu participação humana de código cuja autoria exclusivamente manual não foi comprovada. |
+| "verifique se as alterações podem afetar de maneira negativa" (com o código do tabuleiro, app e testes colados) | A IA comparou os arquivos com a estrutura proposta, identificou pontos de melhoria e inconsistências de escopo em funções e componentes (como a extração do tabuleiro e grade para `tabuleiro.py`), indicando ajustes estruturais e de formatação. O usuário aplicou as melhorias para garantir a estabilidade do fluxo do jogo. |
+| "desses testes, altere pra que comece a usar mock" (com o `test_cronometro.py` colado) | A IA analisou os testes unitários do cronômetro, identificou onde aplicar o `unittest.mock.patch` para isolar o relógio (`datetime` e `time.time`) e propôs o uso de asserções de chamadas (`assert_called` / `assert_not_called`). Validou a correção de regressões na lógica de contagem e nos testes da rota de placar. |
 
 Esses exemplos registram uma recomendação aceita e respostas ajustadas; não se
 inventa uma resposta descartada apenas para preencher uma categoria.
