@@ -108,18 +108,27 @@ def test_palpite_tem_dois_minutos_apenas_apos_dica(cliente, segundos, expirou, e
     with patch("jogo.time.time", return_value=1000):
         estado = cliente.post("/partida", json={"num_jogadores": 2}).get_json()
     rota = f"/partida/{estado['id']}"
+    
     with patch("jogo.time.time", return_value=5000):
         assert cliente.post(f"{rota}/tempo").get_json()["placar"]["erros"] == 0
         dica = cliente.post(f"{rota}/dica", json={"dica": "ponte"}).get_json()
         assert dica["tempo_restante"] == 120
+
     with patch("jogo.time.time", return_value=5000 + segundos) as relogio:
         payload = {"palpite": estado["carta_secreta"], "turno": 0, "fase": "palpite"}
-        resposta = cliente.post(f"{rota}/{endpoint}", json=payload).get_json()
+        resposta = cliente.post(f"{rota}/{endpoint}", json=payload)
+        assert resposta.status_code == 200
+        dados = resposta.get_json()
+
         if expirou:
-            assert resposta["placar"]["erros"] == 1
-            assert resposta["fase"] in ("dica", "palpite", "final")
+            assert dados["placar"]["erros"] == 1
+            assert dados["turno"] == 1
+            assert dados["fase"] == "dica"
+            
+            resposta_repetida = cliente.post(f"{rota}/tempo", json=payload).get_json()
+            assert resposta_repetida["placar"]["erros"] == 1
         else:
-            assert resposta["placar"]["erros"] == 0
+            assert dados["placar"]["erros"] == 0  
         relogio.assert_called()
 
 
