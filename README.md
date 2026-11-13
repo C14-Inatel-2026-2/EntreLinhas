@@ -716,6 +716,7 @@ O grupo utilizou **GPT-6 e GPT-6.1 no Codex**, conforme declaração do integran
 responsável por esta atualização. A ferramenta auxiliou na análise de requisitos,
 consulta de código, histórico e PRs, execução de testes e elaboração da documentação.
 Os usos específicos dos demais integrantes ainda devem ser consolidados.
+Além disso, o integrante Mateus Mendonça utilizou o **Gemini 3.5 Flash Lite** para suporte ao desenvolvimento e refatoração do módulo de tabuleiro e grade (`tabuleiro.py`), estabilização de testes E2E com Cypress, configuração do pipeline no Jenkins e ajustes de lógica e asserções com mocks nos testes do cronômetro (`backend/tests/test_cronometro.py`).
 
 ### Skills utilizadas
 
@@ -746,6 +747,8 @@ de reproduzir literalmente o texto enviado à ferramenta.
 | Frontend inicial | Criar o frontend em HTML/CSS/JavaScript vanilla, com tema cartoon, paleta inspirada no jogo, telas de início, jogo e resultado e consumo da API Flask. | Apoio à implementação da interface e à comunicação com o backend. A interface entregue pode ser consultada em `frontend/static/`. |
 | Acompanhamento da evolução | Comparar o repositório com as issues #6 a #13, os testes por pessoa (com mock, sem mock e negativo), os commits e o equilíbrio das contribuições. | A análise apontou lógica de jogo duplicada e divergência entre o tabuleiro 5 × 5 e o jogo web 3 × 3. Essas pendências estão acompanhadas nas issues [#8](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/8) e [#14](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/14). |
 | Atualização do GitHub Projects | Criar e atualizar as issues do pipeline de CI/CD, registrando o status real das entregas por pessoa. | Apoio à organização das tarefas e responsabilidades no [quadro Kanban](https://github.com/orgs/C14-Inatel-2026-2/projects/3), com vínculos entre issues, PRs e evidências de execução. |
+| `"verifique se está alterações podem afetar de maneira negativa" (com o código do tabuleiro, app e testes colados)` | A IA comparou os arquivos com a estrutura proposta, identificou pontos de melhoria e inconsistências de escopo em funções e componentes (como a extração do tabuleiro e grade para `tabuleiro.py`), indicando ajustes estruturais e de formatação. O usuário aplicou as melhorias para garantir a estabilidade do fluxo do jogo. |
+| `"altere os testes pra começar a usar mock" (com o `test_cronometro.py` colado)` | A IA analisou os testes unitários do cronômetro, identificou onde aplicar o `unittest.mock.patch` para isolar o relógio (`datetime` e `time.time`) e propôs o uso de asserções de chamadas (`assert_called` / `assert_not_called`). Validou a correção de regressões na lógica de contagem e nos testes da rota de placar. |
 
 Para cada exemplo, os integrantes ainda devem registrar quais respostas foram
 aceitas, ajustadas ou descartadas e por quê, incluindo os vínculos com as alterações
