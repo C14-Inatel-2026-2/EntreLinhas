@@ -113,8 +113,13 @@ def test_palpite_tem_dois_minutos_apenas_apos_dica(cliente, segundos, expirou, e
         dica = cliente.post(f"{rota}/dica", json={"dica": "ponte"}).get_json()
         assert dica["tempo_restante"] == 120
     with patch("jogo.time.time", return_value=5000 + segundos) as relogio:
-        resposta = cliente.post(f"{rota}/{endpoint}", json={"palpite": estado["carta_secreta"], "turno": 0, "fase": "palpite"})
-        assert resposta.status_code == 200
+        payload = {"palpite": estado["carta_secreta"], "turno": 0, "fase": "palpite"}
+        resposta = cliente.post(f"{rota}/{endpoint}", json=payload).get_json()
+        if expirou:
+            assert resposta["placar"]["erros"] == 1
+            assert resposta["fase"] in ("dica", "palpite", "final")
+        else:
+            assert resposta["placar"]["erros"] == 0
         relogio.assert_called()
 
 
