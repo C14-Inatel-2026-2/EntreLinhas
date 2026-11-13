@@ -85,6 +85,27 @@ describe("Tempo livre da partida e desempenho", () => {
     cy.get("#ritmo-final").should("not.exist");
   });
 
+  it("mostra Ver resultado e restaura o foco quando o tempo esgota na última carta", function () {
+    cy.intercept("POST", `${rota}/tempo`, { body: {
+      ...this.base, fase: "final", turno: 9, carta_secreta: null, dica: null,
+      tempo_restante: null, duracao_segundos: 120,
+      mensagem: "Tempo esgotado! A carta foi descartada.",
+      placar: { acertos: 7, erros: 2 }, desempenho: desempenho(),
+    }}).as("expirarUltimaCarta");
+    iniciar({ ...this.base, turno: 8, fase: "palpite", carta_secreta: null,
+      dica: "ponte", tempo_restante: 120, duracao_segundos: 0 });
+    cy.tick(120000);
+    cy.wait("@expirarUltimaCarta").its("request.body")
+      .should("deep.equal", { turno: 8, fase: "palpite" });
+    cy.get("#resultado-palpite").should("be.visible");
+    cy.get("#titulo-palpite").should("have.text", "Tempo esgotado!");
+    cy.get("#continuar-palpite").should("have.text", "Ver resultado")
+      .and("be.focused").click();
+    cy.get("#resultado-palpite").should("not.be.visible");
+    cy.get("#tela-final").should("be.visible");
+    cy.get("#titulo-final").should("be.focused");
+  });
+
   [false, true].forEach((falhaInicial) => {
     it(`limita o palpite a dois minutos e recupera falha HTTP: ${falhaInicial}`, function () {
       let chamadas = 0;
