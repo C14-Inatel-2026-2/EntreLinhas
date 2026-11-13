@@ -1053,8 +1053,12 @@ Pipeline do Jenkins antes e depois das alterações 1 e 2, com disparo manual e
 | Depois (SHA final da PR #72) | `15f257bf32baa1eb66ae9c3232ddb210072af5ec` | [#2 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/2/), no Jenkins local do Caio | SUCCESS: 21 testes de jogo e baralho, 60 de backend e 26 do Cypress |
 
 Os links apontam para o Jenkins local de quem executou e só abrem nessa máquina;
-os prints dos builds foram compartilhados com a equipe. O commit de integração
-na `main`, `57ebb50`, tem o mesmo conteúdo do SHA final testado.
+por isso os prints do fim do console ficam em `docs/evidencias/`. O commit de
+integração na `main`, `57ebb50`, tem o mesmo conteúdo do SHA final testado.
+
+![Build #4 no Jenkins local do Fernando: CI aprovada no SHA 3ee8280](docs/evidencias/jenkins-build-4-fernando.png)
+
+![Build #2 do job EntreLinhas-Deploy: CI aprovada no SHA 15f257b](docs/evidencias/jenkins-build-2.png)
 
 Pipeline do Jenkins antes e depois das alterações 3 e 4, no Jenkins local do
 Caio, com disparo manual e `DEPLOY` desmarcado:
@@ -1064,8 +1068,27 @@ Caio, com disparo manual e `DEPLOY` desmarcado:
 | Antes (base na `main`) | `57ebb50d9e8c8bd60e50232cd2a045a41241f2c8`, de conteúdo idêntico ao do `15f257b` | [#2 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/2/), executado no `15f257b` | SUCCESS: 21 testes de jogo e baralho, 60 de backend e 26 do Cypress |
 | Depois (PR #76) | `54bccbca64b36de4957fc557f090c000201e60cf` | [#3 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/3/) | SUCCESS: 21 testes de jogo e baralho, 78 de backend e 26 do Cypress |
 
-O build #3 testou o último commit da PR #76 antes deste registro; o commit que
-acrescenta esta tabela altera apenas o README.
+O build #3 testou o último commit de código da PR #76; os commits seguintes da
+PR alteram apenas o README.
+
+![Build #3 do job EntreLinhas-Deploy: CI aprovada no SHA 54bccbc](docs/evidencias/jenkins-build-3.png)
+
+Antes do merge, a PR #76 recebeu a `main` com as PRs #73, #74 e #75. O antes e
+depois foi repetido sobre essa base, também com disparo manual e `DEPLOY`
+desmarcado:
+
+| Momento | SHA | Build | Resultado |
+| --- | --- | --- | --- |
+| Antes (`main` sem a PR #76) | `5ef0d8603ea79dd00aea3bcd8a87f0e51599194a` | [#8 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/8/) | SUCCESS: 21 testes de jogo e baralho, 60 de backend e 38 do Cypress |
+| Depois (PR #76 com a `main`) | `bc41644a0f8095c061eaf1e5855cbd9e1a05bfa2` | [#7 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/7/) | SUCCESS: 21 testes de jogo e baralho, 78 de backend e 38 do Cypress |
+
+O commit de integração na `main`, `ddf7cdc`, tem o mesmo conteúdo do
+`bc41644`. Os 18 testes a mais no backend são os de
+`backend/tests/test_regras_rodada.py`.
+
+![Build #8 do job EntreLinhas-Deploy: CI aprovada no SHA 5ef0d86](docs/evidencias/jenkins-build-8.png)
+
+![Build #7 do job EntreLinhas-Deploy: CI aprovada no SHA bc41644](docs/evidencias/jenkins-build-7.png)
 
 ### Conexões e inicialização do banco — Henrique Rodrigues Mendonça (issue #67, PR #75)
 
