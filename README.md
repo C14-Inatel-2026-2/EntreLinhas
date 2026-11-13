@@ -1177,20 +1177,36 @@ demais integrantes.
 
 ### Prompts reais e tratamento das respostas
 
-Os exemplos abaixo reproduzem pedidos reais de Fernando na sessão de revisão
-e documentação, preservando a redação original. São exemplos do uso individual;
-não atribuem esses mesmos prompts aos demais integrantes.
+O design inicial da interface foi desenvolvido com apoio de IA a partir da
+direção visual definida pelo integrante: **tema cartoon, paleta inspirada no
+jogo físico e telas de início, partida e resultado**, em HTML, CSS e JavaScript
+vanilla. O pedido também incluía o consumo da API Flask. Esse relato já constava
+no histórico do README; o texto abaixo resume o pedido, sem apresentá-lo como
+transcrição literal da conversa original.
 
-| Prompt real | Resposta e tratamento |
+| Aplicação | Pedido à IA e resultado no projeto |
 | --- | --- |
-| “atualize a main e veja a pr do caio para poder aceitar ela” | A IA identificou a PR #76, examinou o diff e executou os testes em uma cópia isolada para preservar alterações locais. A recomendação de integração foi **aceita**: o responsável também instruiu “aprove e faca o merge”, e a PR foi integrada. Foram registrados 99 testes Python, 9 de proteção da CI, 40 unitários JavaScript e 38 Cypress aprovados. |
-| “pq existe static/js/mocks se n tem nada?” | A investigação foi **ajustada após conferir o caminho**: a primeira consulta em `frontend/static/js/mocks` não encontrou a pasta; a busca seguinte localizou `static/js/mocks` na raiz, vazia, sem arquivos versionados ou referências encontradas. A resposta explicou que os mocks HTTP usados nos testes estão no Cypress. A pasta não foi removida nessa consulta. |
-| “preencha essa parte, foram usadas individualemnte” | A documentação foi **ajustada com a informação fornecida pelo integrante**: uso individual da IA. Os exemplos anteriores eram resumos; foram substituídos por prompts reais desta sessão e pelo registro do tratamento das respostas. Também se distinguiu participação humana de código cuja autoria exclusivamente manual não foi comprovada. |
-| "verifique se as alterações podem afetar de maneira negativa" (com o código do tabuleiro, app e testes colados) | A IA comparou os arquivos com a estrutura proposta, identificou pontos de melhoria e inconsistências de escopo em funções e componentes (como a extração do tabuleiro e grade para `tabuleiro.py`), indicando ajustes estruturais e de formatação. O usuário aplicou as melhorias para garantir a estabilidade do fluxo do jogo. |
-| "desses testes, altere pra que comece a usar mock" (com o `test_cronometro.py` colado) | A IA analisou os testes unitários do cronômetro, identificou onde aplicar o `unittest.mock.patch` para isolar o relógio (`datetime` e `time.time`) e propôs o uso de asserções de chamadas (`assert_called` / `assert_not_called`). Validou a correção de regressões na lógica de contagem e nos testes da rota de placar. |
+| Design e frontend inicial | Criar a interface com a direção visual descrita acima, organizar o tabuleiro, os controles e as telas do fluxo da partida e integrar as ações à API Flask. O resultado está em `frontend/static/`; a interface evoluiu com feedback de palpites, nomes e turnos na [PR #41](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/41). |
+| Organização e integração do projeto | Apoiar a separação de backend e frontend, mantendo os caminhos de execução, dependências e testes coerentes. A reorganização está registrada na [PR #40](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/40). |
+| Automação de testes e publicação | Apoiar a integração dos testes Python, JavaScript e Cypress ao Jenkins, com Flask e SQLite temporários, relatórios e publicação condicionada à aprovação do mesmo commit. A implementação e os resultados estão nas [PRs #46](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/46) e [#47](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/47). |
 
-Esses exemplos registram uma recomendação aceita e respostas ajustadas; não se
-inventa uma resposta descartada apenas para preencher uma categoria.
+**Outros prompts registrados e avaliação das respostas**
+
+Os pedidos abaixo foram selecionados por sua relação com revisão técnica,
+preservação de comportamento e qualidade dos testes. Os dois primeiros foram
+relatados por Mateus na [PR #80](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/80);
+o terceiro foi registrado na sessão de revisão do projeto.
+
+| Prompt registrado | Aplicação e decisão sobre a resposta |
+| --- | --- |
+| “verifique se as alterações podem afetar de maneira negativa” — acompanhado do código do tabuleiro, aplicação e testes | Apoio à análise da extração do tabuleiro e das funções de composição da grade. A proposta foi **aceita com ajustes**: a revisão da [PR #74](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/74) identificou falhas no cenário de teclado; a correção final em `7f1e38f` foi aprovada após 19 testes unitários JavaScript e 27 cenários Cypress verdes. O módulo entregue é `frontend/static/js/ui/tabuleiro.js`. |
+| “desses testes, altere pra que comece a usar mock” — acompanhado de `test_cronometro.py` | Apoio às asserções de chamadas do relógio com `unittest.mock.patch`. A solução inicial foi **ajustada após revisão**: removia verificações de comportamento e foi devolvida para correção. Na [PR #80](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/80), foram restauradas as verificações de expiração, avanço do turno, penalidade única e acerto antes do prazo. O commit `f3b44fc` foi aprovado após os 20 testes do arquivo passarem com banco isolado. |
+| Auditoria do código, das PRs e dos commits para verificar os requisitos de refactoring — resumo do pedido registrado | A IA comparou o código integrado, os commits, as PRs e o README com a exigência de dois refactorings por integrante e testes/pipeline verdes antes e depois. A avaliação foi **ajustada ao escopo do enunciado**: distinguiu evidências individuais da validação coletiva e reconheceu que não era exigido um build exclusivo por PR. Os registros consultados estão na seção [Refactorings](#refactorings). |
+
+Esses casos mostram como as respostas foram avaliadas e corrigidas antes da
+integração. A execução dos testes, os comentários de revisão e os commits
+identificam o resultado efetivamente validado de cada alteração.
+
 
 ### Participação humana e partes feitas sem IA
 
