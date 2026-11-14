@@ -1,7 +1,8 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from db import conectar_bd, criar_tabelas, criar_partida, consultar_partida
 from app import app
+
 
 # banco temporario na ram pra nao sujar o arquivo real
 @pytest.fixture
@@ -11,12 +12,14 @@ def db_memoria():
     yield conn
     conn.close()
 
+
 # cliente do flask pra simular as chamadas http
 @pytest.fixture
 def cliente_flask():
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client
+
 
 # teste sem mock: cria a partida no banco em memoria e busca em seguida
 def test_criar_e_consultar_partida_sem_mock(db_memoria):
@@ -28,15 +31,19 @@ def test_criar_e_consultar_partida_sem_mock(db_memoria):
     assert dados["id"] == partida_id
     assert dados["num_jogadores"] == 4
 
+
 # teste sem mock: confere se os ids estao subindo sequencialmente
 def test_id_partida_autoincremento(db_memoria):
     id1 = criar_partida(db_memoria, num_jogadores=2)
     id2 = criar_partida(db_memoria, num_jogadores=3)
     assert id2 == id1 + 1
 
-# teste com mock: simula a resposta do banco sem precisar tocar nele
+
+# teste com mock: simula a conexao e a resposta do banco sem tocar no sqlite real
 @patch("app.consultar_partida")
-def test_obter_placar_com_mock(mock_consultar, cliente_flask):
+@patch("app.get_db_connection")
+def test_obter_placar_com_mock(mock_get_conn, mock_consultar, cliente_flask):
+    mock_get_conn.return_value.__enter__.return_value = MagicMock()
     mock_consultar.return_value = {
         "id": 1,
         "data_inicio": "2026-09-23T10:00:00",
@@ -50,17 +57,23 @@ def test_obter_placar_com_mock(mock_consultar, cliente_flask):
     dados = res.get_json()
     assert dados["id"] == 1
     assert dados["pontuacao_final"] == 10
+    mock_get_conn.assert_called_once()
+    mock_consultar.assert_called_once()
 
-# teste negativo: tenta dar palpite em uma partida que nao existe
-def test_palpite_partida_inexistente_retorna_404(cliente_flask):
+
+# teste negativo isolado em memoria: tenta dar palpite em partida inexistente
+def test_palpite_partida_inexistente_retorna_404(db_memoria, cliente_flask):
     payload = {
         "jogador": "Henrique",
         "dica": "Sol",
         "coordenada_correta": "A1",
         "coordenada_tentada": "A2"
     }
-    
-    res = cliente_flask.post("/partida/99999/palpite", json=payload)
+
+    with patch("app.get_db_connection") as mock_get_conn:
+        mock_get_conn.return_value.__enter__.return_value = db_memoria
+        res = cliente_flask.post("/partida/99999/palpite", json=payload)
+
     assert res.status_code == 404
     dados = res.get_json()
     assert dados["erro"] == "Partida não encontrada"
