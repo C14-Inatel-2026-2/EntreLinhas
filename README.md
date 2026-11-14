@@ -3,19 +3,23 @@
 Jogo de cartas cooperativo de dedução para navegador, baseado no jogo físico *Entre Linhas*
 (PaperGames). Projeto desenvolvido para a disciplina C14 - Engenharia de Software (Inatel).
 
+**[Jogar Entre Linhas online](https://entrelinhas-production-7e6e.up.railway.app/static/index.html)**
+
 ## Navegação
 
 - [Como funciona o jogo](#como-funciona-o-jogo)
 - [Instalação](#instalação) e [execução](#execução)
 - [Arquitetura e API](#arquitetura-e-api)
+- [Organização da interface](#organização-da-interface)
 - [Docker](#docker) e [Jenkins/Railway](#deploy-jenkins--railway)
 - [Funcionalidades](#funcionalidades) e [testes](#testes)
 - [Requisitos funcionais e não funcionais](#requisitos-funcionais-e-não-funcionais)
 - [Histórias de usuário](#histórias-de-usuário)
 - [Metodologia de desenvolvimento](#metodologia-de-desenvolvimento)
 - [Dinâmica de desenvolvimento e refatorações](#dinâmica-de-desenvolvimento-e-refatorações)
+- [Evidências da entrega](#evidências-da-entrega)
+- [Refactorings](#refactorings)
 - [Uso de IA](#uso-de-ia)
-- [Pendências para a NP2](#pendências-para-a-np2)
 
 ## Como funciona o jogo
 
@@ -147,11 +151,18 @@ serve o frontend e encaminha as chamadas ao backend.
 | --- | --- |
 | `frontend/static/js/app.js` | Fluxo de telas, turnos, feedback e interação com a partida |
 | `frontend/static/js/services/api.js` | Comunicação HTTP com a API |
-| `backend/app.py` | Rotas, validações e coordenação das operações |
-| `backend/jogo.py` | Montagem do estado retornado à interface e cartas da partida |
+| `backend/app.py` | Rotas HTTP, validação das entradas e coordenação entre regras e banco |
+| `backend/jogo.py` | Regras usadas pela API (dica, avanço da rodada, tempo, placar e desempenho) e montagem do estado |
 | `backend/db.py` | Inicialização, consultas e persistência SQLite |
 | `backend/palavras.py` | Catálogo inicial de palavras |
-| `backend/src/` | Classes de domínio e execução de terminal; a API usa também `backend/jogo.py` |
+| `backend/src/` | Classes de domínio em memória (`Baralho`, `Tabuleiro`, `Jogo`) e execução de terminal; a API usa apenas `Baralho` |
+
+As regras usadas pela API têm uma única implementação, em `backend/jogo.py`,
+como funções sem estado: cada requisição lê a partida do SQLite, aplica a regra
+e grava o resultado. A classe `Jogo` de `backend/src/jogo.py` guarda a partida
+em memória e, por isso, não é usada pela API; permanece como modelo de domínio,
+coberta por `backend/tests/test_jogo.py` no stage de testes de jogo e baralho
+([issue #8](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/8)).
 
 | Método e rota | Entrada / resultado |
 | --- | --- |
@@ -170,10 +181,41 @@ uma palavra de até 60 caracteres. O estado enviado durante a fase de palpite
 oculta a carta secreta. A aplicação foi projetada para uso cooperativo no mesmo
 navegador; não implementa salas online com autenticação e isolamento por jogador.
 
+## Organização da interface
+
+A interface é uma SPA em HTML, CSS e JavaScript nativos, sem framework, bundler
+ou etapa de compilação. `frontend/static/index.html` reúne as telas
+**início → nomes → jogo → resultado** e carrega `js/app.js` como módulo.
+Abra a aplicação por HTTP; os módulos não devem ser executados via `file://`.
+
+| Arquivo ou diretório | Responsabilidade |
+| --- | --- |
+| `frontend/static/js/app.js` | Navegação, estado visual e coordenação das ações |
+| `frontend/static/js/config.js` | Endereço da API; `API_BASE = ""` usa a mesma origem |
+| `frontend/static/js/services/api.js` | Fetch, JSON, timeout e tratamento de erros |
+| `frontend/static/js/ui/jogadores.js` | Campos de nomes e validação do formulário |
+| `frontend/static/js/ui/tabuleiro.js` | Renderização, seleção e foco das células |
+| `frontend/static/js/ui/dialogos.js` | Ciclo de vida e foco dos diálogos |
+| `frontend/static/js/utils/turno.js` | Cálculo dos participantes e papéis do turno |
+| `frontend/static/js/utils/dom.js` | Acesso aos elementos da página |
+| `frontend/static/js/utils/validacao.js` | Validação do formato das respostas da API |
+
+Os nomes permanecem na memória da interface; a API recebe a quantidade de
+jogadores. A ordem de quem dá a dica é sorteada; em dupla, a outra pessoa
+confirma o palpite, e em grupos maiores o time adivinha sem o autor da dica.
+O contrato de estados e rotas está em [Arquitetura e API](#arquitetura-e-api).
+
+O HTML carrega `css/style.css`, que importa os estilos na ordem **base → layout
+→ componentes → telas**. `base/` reúne tema e acessibilidade; `layout/`, a
+estrutura; `components/`, os elementos reutilizáveis; `pages/`, os estilos de
+cada tela. Media queries e animações ficam próximas ao componente correspondente;
+a preferência global por movimento reduzido fica em `base/global.css`.
+Novos arquivos CSS devem ser importados em `style.css`, sem duplicar estilos.
+
 ## Docker
 
 Para volumes, testes em containers e deploy no Railway, consulte
-[Docker e Railway](docs/docker-railway.md).
+[Docker e Railway](#docker).
 
 Com Docker Desktop iniciado e configurado para containers Linux, execute na raiz:
 
@@ -207,6 +249,35 @@ docker compose up --build -d --wait
 o pipeline único instala as dependências, testa backend e frontend e só então
 permite publicar no Railway.
 
+### Armazenamento e decisões de infraestrutura
+
+| Componente | Armazenamento |
+| --- | --- |
+| Jogo local | Volume `jogo-data`, em `/data` |
+| Railway | Volume do serviço em `/data`, com SQLite em `/data/jogo.db` |
+| Jenkins | Volume externo `jenkins-entrelinhas-home`, em `/var/jenkins_home` |
+| Testes | Banco temporário e relatórios exportados para o workspace |
+
+O backend semeia 200 palavras sem duplicar registros nas reinicializações.
+Cada partida guarda as seis palavras sorteadas em `estados_partida.palavras`.
+As migrações preservam as partidas existentes; não é preciso apagar o banco.
+Não monte volumes sobre o código da imagem nem use `down -v` para uma aplicação
+cujos dados deseja preservar.
+
+O Compose usa redes separadas para aplicação e testes. Frontend e backend
+executam sem privilégios, com sistema de arquivos somente leitura, capacidades
+removidas e diretórios temporários graváveis. Logs têm rotação. O Nginx atende
+na porta interna 8080 e encaminha as rotas da API ao Gunicorn.
+As imagens base são fixadas por digest; atualizar exige trocar o digest e
+validar os testes. `.dockerignore` exclui bancos e segredos do contexto.
+
+Os builds usam a raiz do repositório. O Dockerfile Python separa dependências,
+testes e runtime; os Dockerfiles de frontend copiam apenas sua área. No Railway,
+a imagem integra frontend e backend em um serviço; a separação de containers
+é específica do Compose local. O entrypoint ajusta a propriedade do volume e
+reduz privilégios antes de iniciar o Gunicorn. Backups do volume Railway devem
+ser configurados no serviço.
+
 ## Deploy Jenkins → Railway
 
 O `Jenkinsfile` executa o deploy no próprio servidor Jenkins Linux, pelo executor
@@ -228,7 +299,8 @@ O volume do Jenkins é externo ao Compose; não é removido por `down -v`.
 Evite esse comando para preservar também o volume SQLite do jogo.
 Em outra máquina, a primeira execução exige configurar usuário, plugins e jobs.
 
-O pipeline é único (um job): `Preparar commit` → `Build` →
+A entrega utiliza **stages por integrante**, conforme o critério esclarecido
+pelo grupo. Eles são coordenados por um único job Jenkins: `Preparar commit` → `Build` →
 `Testes de jogo e baralho - Caio` → `Backend e cobertura - Henrique` →
 `Frontend/Cypress - Mateus` → `Deploy - Fernando`.
 Os testes Python são divididos sem duplicação: jogo e baralho no stage do Caio,
@@ -296,6 +368,34 @@ Desative o autodeploy para deixar a publicação sob controle do Jenkins.
 O Dockerfile instala dependências com `pip --no-cache-dir`, sem cache mounts
 que dependam do ID de um serviço Railway.
 
+### Histórico de validação da CI
+
+Em 17/10/2026, a integração foi validada no SHA
+`886183cbb4e62471d95abd509975b7899d81728b`, com Groovy Sandbox e `DEPLOY=false`:
+44 testes Python, 4 unitários JavaScript, 19 Cypress e 8 de proteção/limpeza
+aprovados. O build terminou em SUCCESS e não publicou em produção. Esse é um
+registro histórico, anterior às contagens atuais.
+
+O build #2 do job `EntreLinhas-Deploy`, também de 17/10, validou
+`ef63478622ac2232ce0e913eb35010dee0d1edba`, sem publicação: 21 testes de domínio,
+23 de backend, 4 JavaScript, 19 Cypress e 9 de proteção/limpeza; cobertura Python
+agregada de 90,46%. O build #3 validou a publicação automática por SCM no SHA
+`7b9ca36fafa6e0508d8e620ecf2bf0de44358df9`. O build final #20, de 11/11, está
+identificado em [Evidências da entrega](#evidências-da-entrega).
+
+A integração corrigiu a seleção de specs para incluir API real e a limpeza de
+processos/bancos em falhas. Uma VM com cerca de 2 GB apresentou encerramentos
+por memória ao executar controladores simultâneos; a execução limpa passou.
+A recomendação operacional é reservar pelo menos 4 GB ao Docker e manter um
+único controlador Jenkins para a mesma automação.
+
+Os relatórios históricos foram exportados para `reports/ci-validacao/` e
+`reports/ci-automacao/`, ignorados pelo Git. Novas máquinas precisam executar o
+pipeline para gerar seus próprios artefatos. O job usa Pipeline script: mudanças
+no Jenkinsfile exigem atualizar também o script salvo no job. Com o computador
+ou Jenkins desligados, polling e deploy ficam suspensos; várias alterações
+entre consultas podem ser reunidas em um build do SHA mais recente.
+
 ## Funcionalidades
 
 - [x] Iniciar partida com número configurável de jogadores
@@ -326,14 +426,13 @@ que dependam do ID de um serviço Railway.
 | RF-TUR-02 | Cada rodada segue as fases dica → palpite; ações fora da fase são recusadas com 409 | `test_api_rejeita_dica_invalida_e_palpite_fora_de_fase` |
 | RF-TUR-03 | A interface indica quem dá a dica e quem adivinha; com três ou mais jogadores, quem deu a dica não participa do palpite | Cypress `interface-partida.cy.js` |
 | RF-DIC-01 | Na fase de dica, a API envia a carta secreta ao jogador da vez; na fase de palpite, não a envia | `test_dica_palpite_e_placar_sao_persistidos` |
-| RF-DIC-02 | A dica deve ter uma única palavra, sem espaços, não vazia e com até 60 caracteres; caso contrário, é recusada com 400 | `test_api_rejeita_dica_invalida_e_palpite_fora_de_fase`; Cypress `partida.cy.js` |
+| RF-DIC-02 | A dica deve ter uma única palavra, sem espaços, não vazia e com até 60 caracteres; caso contrário, é recusada com 400 | `test_dica_invalida_e_recusada_sem_mudar_a_fase`, `test_api_rejeita_dica_invalida_e_palpite_fora_de_fase`; Cypress `partida.cy.js` |
 | RF-DIC-03 | Uma dica válida muda a partida para a fase de palpite e é exibida aos demais | `test_dica_palpite_e_placar_sao_persistidos` |
-| RF-DIC-04 | A dica é gravada com a jogada (jogador, coordenada correta e tentada) | Implementado em `backend/app.py`; sem teste automatizado do campo `dica` |
+| RF-DIC-04 | A dica é gravada com a jogada (jogador, coordenada correta e tentada) | `test_dica_e_gravada_junto_com_a_jogada` |
 
 Limitações: não há autenticação, então a identificação do jogador da vez ocorre
 apenas na interface. A regra de palavra única considera separadores em branco, de modo
-que palavras com hífen são aceitas. A API recusa dicas vazias ou acima de 60
-caracteres, mas os testes de API cobrem apenas o caso de duas palavras.
+que palavras com hífen são aceitas.
 
 ## Testes
 
@@ -348,7 +447,7 @@ npm --prefix frontend run test:e2e
 Abra `frontend/reports/cypress/index.html` para visualizar o resultado. O servidor de testes
 é iniciado e encerrado automaticamente. As respostas HTTP são controladas
 pelo Cypress; essa suíte valida a interface,
-não a integração com Python/SQLite. Consulte o [guia dos testes](frontend/cypress/README.md)
+não a integração com Python/SQLite. Consulte o [guia dos testes](#testes-de-interface-e-api-real)
 para os cenários, modo interativo e limitações.
 
 Os testes Python existentes continuam separados:
@@ -367,8 +466,8 @@ npm --prefix frontend run test:unit
 No Windows, use `npm --prefix frontend run test:e2e:windows` para os testes de
 navegador com API simulada. O pipeline executa também a suíte com API real, por
 `scripts/ci/frontend.py`, que depende de Linux, Gunicorn e controle de processos
-POSIX. Veja os [resultados históricos de integração](docs/ci-integracao-validacao.md)
-e a [configuração de CI automático](docs/ci-automatica.md).
+POSIX. Veja os [resultados históricos de integração](#histórico-de-validação-da-ci)
+e a [configuração de CI automático](#deploy-jenkins--railway).
 
 Para gerar cobertura e relatórios Python, a partir de `backend/`:
 
@@ -381,19 +480,83 @@ pelo Jenkins; os artefatos de cada execução ficam arquivados no build. Contage
 de testes e percentuais registrados em documentos históricos correspondem ao
 commit daquela execução e devem ser regenerados para a entrega final.
 
+### Testes de interface e API real
+
+`frontend/tests/frontend.test.mjs` verifica os validadores de resposta e o
+cliente HTTP, incluindo sucesso e erro com `fetch` simulado. Os testes de
+`tabuleiro.test.mjs` usam DOM simulado; `turno.test.mjs` verifica os papéis dos
+participantes. Eles complementam os cenários executados no navegador.
+
+`frontend/cypress/e2e/` usa `cy.intercept()` e dados de contrato em
+`frontend/cypress/fixtures/partida.json`. Não existe modo de demonstração na
+aplicação. Essa suíte verifica navegação, nomes, dicas, seleção, diálogos,
+foco, teclado, cronômetro, encerramento e falhas HTTP em desktop e celular.
+Trocar apenas `baseUrl` mantém as interceptações desses cenários.
+`frontend/cypress/real-api/fluxo.cy.js` verifica criação, dica, palpite, nove
+rodadas e encerramento com Flask e SQLite reais.
+
+Para reproduzir o stage completo em Linux ou macOS, com dependências instaladas,
+execute na raiz usando o Python do ambiente virtual:
+
+```bash
+python scripts/ci/frontend.py
+```
+
+O executor roda os unitários, inicia Gunicorn em uma porta temporária com banco
+SQLite descartável, executa todos os Cypress e encerra os processos ao terminar.
+O Jenkins define `CYPRESS_BROWSER=chromium`; localmente o padrão é Electron.
+
+Com Flask já iniciado em `127.0.0.1:5000`, é possível rodar apenas a API real,
+a partir de `frontend/`:
+
+```bash
+npx cypress run --browser electron --spec cypress/real-api/fluxo.cy.js --config specPattern=cypress/real-api/fluxo.cy.js,baseUrl=http://127.0.0.1:5000
+```
+
+Essa execução manual cria partidas no banco configurado do Flask; prefira um
+banco descartável. Para depuração interativa, use `npm run test:e2e:open` com
+servidor estático, ou `npm run e2e:open` com um servidor já iniciado. A suíte
+estática usa a porta 8000 e a libera ao terminar, inclusive em falha.
+
+Os relatórios ficam em `frontend/reports/cypress/index.html` e `index.json`,
+com capturas em `screenshots/`; os unitários geram resultado e LCOV em
+`frontend/reports/frontend/`. Os artefatos são ignorados pelo Git e podem ser
+substituídos na próxima execução; para a entrega, use os arquivados no Jenkins.
+Não é necessário usar Cypress Cloud. Se a instalação do navegador tiver sido
+bloqueada, execute `npx cypress install` em `frontend/`.
+
+### Testes em containers
+
+Os serviços de teste ficam no perfil `tests` do Compose. O nome de projeto
+separado evita interferir na aplicação local. Execute os comandos na raiz:
+
+```bash
+docker compose -p entrelinhas-tests --profile tests build backend-tests frontend-tests app-test e2e-tests
+docker compose -p entrelinhas-tests --profile tests run --rm backend-tests
+docker compose -p entrelinhas-tests --profile tests run --rm frontend-tests
+docker compose -p entrelinhas-tests --profile tests run --rm e2e-tests
+docker compose -p entrelinhas-tests --profile tests down
+```
+
+Execute cada comando conferindo seu código de saída e faça a limpeza mesmo se
+um teste falhar. A API dos testes usa armazenamento temporário e não acessa o
+volume do jogo. Os relatórios são exportados para `reports/` na raiz, incluindo
+`reports/cypress/index.html`. Para execuções concorrentes, use nomes de projeto
+e workspaces distintos.
+
 ## Histórias de usuário
 
 As histórias são registradas pelos próprios autores e vinculadas ao
 [Projects do grupo](https://github.com/orgs/C14-Inatel-2026-2/projects/3).
-Situação conferida em **30/10/2026**; o status atualizado deve ser consultado no quadro.
+Situação conferida em **11/11/2026**: as cinco histórias estão entregues e suas issues estão encerradas. Os cenários correspondentes foram validados na versão descrita em [Evidências da entrega](#evidências-da-entrega).
 
 | História | Autor | Issue | Situação na conferência |
 | --- | --- | --- | --- |
-| US01 — Enviar uma dica | Caio | [#59](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/59) | A fazer no quadro; critérios e evidências registrados |
-| US02 — Registrar um palpite | Henrique | [#57](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/57) | Em revisão |
-| US03 — Iniciar uma partida | Mateus | [#63](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/63) | Em revisão |
-| US04 — Acompanhar o resultado | Fernando | [#60](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/60) | Em revisão |
-| US05 — Encerrar uma partida antecipadamente | Fernando | [#61](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/61) | Em revisão |
+| US01 — Enviar uma dica | Caio | [#59](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/59) | Entregue |
+| US02 — Registrar um palpite | Henrique | [#57](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/57) | Entregue |
+| US03 — Iniciar uma partida | Mateus | [#63](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/63) | Entregue |
+| US04 — Acompanhar o resultado | Fernando | [#60](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/60) | Entregue |
+| US05 — Encerrar uma partida antecipadamente | Fernando | [#61](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/61) | Entregue |
 
 Conforme a organização do quadro, Caio, Henrique e Mateus devem criar uma história
 cada, e Fernando deve criar duas, totalizando cinco. Cada história deve conter
@@ -416,7 +579,7 @@ correta no tabuleiro.
 
 - **Issue:** [US01 — #59](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/59)
 - **Prioridade:** Alta
-- **Status:** Implementação concluída; documentação em revisão nesta PR.
+- **Status:** Entregue; issue encerrada e cenários validados em 11/11/2026.
 - **Evidências:** [PR #20](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/20)
   e [PR #56](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/56); testes em
   `backend/tests/test_api_jogo.py` e `frontend/cypress/e2e/`
@@ -427,7 +590,7 @@ correta no tabuleiro.
 Como jogador, quero registrar meu palpite para descobrir se acertei e acompanhar minha pontuação.
 
 - **Issue vinculada:** [#57](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/57)
-- **Status:** Em revisão no Projects em 30/10/2026; documentação incorporada pela PR #58.
+- **Status:** Entregue; issue encerrada. Documentação incorporada pela PR #58.
 - **Evidências:** PRs [#3](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/3), [#18](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/18) e [#44](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/44)
 
 #### Requisitos Funcionais (API e Placar)
@@ -444,7 +607,7 @@ Como jogador, quero iniciar uma partida com meus amigos informando o número de 
 
 - **Issue vinculada:** [#63](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/63)
 - **Prioridade:** Alta.
-- **Status:** Em revisão nesta PR.
+- **Status:** Entregue; issue encerrada e cenários validados em 11/11/2026.
 
 #### Requisitos funcionais
 
@@ -473,7 +636,7 @@ final para saber o desempenho cooperativo da partida.
 
 - **Issue vinculada:** [#60](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/60)
 - **Prioridade:** Alta.
-- **Status:** Em revisão no Projects em 30/10/2026.
+- **Status:** Entregue; issue encerrada e cenários validados em 11/11/2026.
 
 #### Requisitos funcionais
 
@@ -513,7 +676,7 @@ consultar o placar acumulado até aquele momento.
 
 - **Issue vinculada:** [#61](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/61)
 - **Prioridade:** Alta.
-- **Status:** Em revisão no Projects em 30/10/2026.
+- **Status:** Entregue; issue encerrada e cenários validados em 11/11/2026.
 
 #### Requisitos funcionais
 
@@ -557,18 +720,17 @@ não comprova rollback no servidor; atomicidade e recuperação permanecem na #9
 | RNF-CI-02 | Bloquear publicação em falha e conferir o SHA publicado por `/static/release.json`, `/health` e interface |
 | RNF-CI-03 | Arquivar relatórios e cobertura; execução automática depende de Jenkins, Docker, computador e internet disponíveis |
 
-A consolidação preserva a contribuição de Henrique da PR #58 e corrige o vínculo
-da US02, que apontava para a PR #52. As PRs #64 e #65 documentam, respectivamente,
-a US01/requisitos de Caio e a US03 de Mateus. A revisão de Fernando sobre a US01
-está registrada na #59. A descrição de Mateus e as demais pendências da entrega
-continuam sujeitas à conferência no quadro. A #51 permanece em revisão até a
-conferência independente e a resolução das pendências aplicáveis.
+A documentação reúne as contribuições de Henrique (#58), Fernando (#62),
+Caio (#64) e Mateus (#65). As tarefas de organização #48–#51 e as histórias
+#57, #59, #60, #61 e #63 estão encerradas. A conclusão funcional das histórias
+não equivale a afirmar que todas as PRs tiveram aprovação formal: o registro
+das revisões é apresentado nas [evidências da entrega](#evidências-da-entrega).
 
 ## Metodologia de desenvolvimento
 
 O grupo utiliza **Kanban no GitHub Projects** para visualizar o andamento,
 distribuir responsabilidades e acompanhar as entregas. O quadro
-[EntreLinhas — Entrega 31/10/2026 — Kanban e documentação](https://github.com/orgs/C14-Inatel-2026-2/projects/3)
+[EntreLinhas — Entregas e pendências NP2](https://github.com/orgs/C14-Inatel-2026-2/projects/3)
 centraliza issues, responsáveis, prioridades e prazos. Essa organização permite
 acompanhar o fluxo contínuo das tarefas e identificar pendências de implementação,
 documentação e revisão.
@@ -622,14 +784,30 @@ pertinentes, documentação atualizada, revisão por outro integrante e execuç�
 do pipeline para o commit integrado. O pipeline atual valida a `main` após o
 merge; não constitui um check obrigatório de PR antes do merge.
 
-Para completar as evidências do processo, registrar a frequência real de revisão
-do quadro e das reuniões e pelo menos uma métrica com período e fonte (por
-exemplo, issues concluídas por semana ou tempo entre abertura e merge de PRs).
-Não há métricas calculadas nesta versão.
+### Acompanhamento e métricas
+
+O acompanhamento verificável ocorreu de forma assíncrona, pelas atualizações
+de issues, commits e revisões de PRs. O histórico permite observar um ciclo de
+documentação em 30–31/10 e outro de correção, revisão e integração em 10–11/11.
+Não há atas ou calendário versionados que comprovem uma frequência fixa de
+reuniões; por isso não se atribuem ao grupo reuniões diárias ou sprints formais.
+DoR e DoD acima são propostas documentadas, sem registro de adoção formal.
+
+Métrica calculada pelas datas `closedAt` das issues da API do GitHub, antes dos
+ajustes da auditoria de 11/11, com limites em UTC:
+
+| Período | Issues encerradas | Evidências |
+| --- | --- | --- |
+| 25–31/10/2026 | 8 | #48, #49, #50, #51, #57, #59, #60, #61 |
+| 01–11/11/2026 | 2 | #66, #8 |
+
+A #63 foi encerrada depois desse levantamento, em 11/11. A contagem inclui
+tarefas documentais e de organização; não mede produtividade individual nem
+representa sprints. Fonte e limites estão nas [evidências](#evidências-da-entrega).
 
 ## Dinâmica de desenvolvimento e refatorações
 
-O fluxo documentado em [CI automático](docs/ci-automatica.md) orienta criar uma
+O fluxo documentado em [CI automático](#deploy-jenkins--railway) orienta criar uma
 branch, enviar commits, abrir PR para `main` e solicitar revisão de outro membro.
 Após o merge, Jenkins consulta a branch, testa um SHA fixo e só publica se todos
 os stages o aprovarem. O padrão de commits observado inclui `feat:`, `fix:`,
@@ -647,42 +825,338 @@ Exemplos concretos para discutir na defesa:
 - **Correção de caminho:** a [PR #44](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/44)
   recebeu revisão sobre o caminho da virtualenv dentro de `backend/`, seguido
   de correção e aprovação.
-- **Execução em CI:** os [registros de validação](docs/ci-integracao-validacao.md)
+- **Execução em CI:** os [registros de validação](#histórico-de-validação-da-ci)
   descrevem limitações de memória, seleção do navegador e limpeza de processos
   e bancos temporários após falhas.
 
-O grupo ainda deve complementar este relato com as decisões tomadas nas
-reuniões, como redistribuiu tarefas diante de bloqueios e suas próprias lições
-aprendidas. Os exemplos acima são evidências técnicas, não depoimentos dos membros.
+### Bloqueios, decisões e lições extraídas do histórico
+
+Na PR #74, o cenário de teclado falhou durante a revisão. Houve novas correções
+e repetição dos testes até a aprovação no SHA `7f1e38f`. A PR #73 foi atualizada
+após a integração desse trabalho, preservando a separação dos módulos do tabuleiro
+e dos diálogos. A PR #76 incorporou a main após a #73 para resolver o conflito
+no README. Esses eventos mostram a coordenação por dependência entre mudanças.
+
+As lições sustentadas por esses registros são: testar o SHA final depois de
+resolver conflitos; validar teclado e foco no navegador; preservar todas as
+suítes ao alterar o pipeline; e registrar o SHA junto do relatório para evitar
+apresentar um build antigo como evidência de uma revisão nova. Para uma próxima
+entrega, antecipar essa conferência reduz correções próximas do prazo. Essas
+conclusões são extraídas do histórico técnico; não substituem relatos de reuniões
+que não foram registrados.
+
+## Evidências da entrega
+
+## Versão e alcance
+
+Main conferida: `ddf7cdc9531c6d3f08f9a11c6ddcfb725567bfde`, merge da
+[PR #76](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/76).
+Os resultados abaixo correspondem ao código dessa versão. A atualização
+deste README ainda precisa ser integrada à main;
+não se apresenta seu conteúdo local como já publicado no GitHub.
+
+## Stages por integrante
+
+Conforme esclarecimento do responsável pelo grupo, o requisito da entrega é
+um **stage por integrante**, coordenados por um job Jenkins. Não é necessário
+criar um job separado por pessoa.
+
+| Stage | Integrante | Evidência de contribuição |
+| --- | --- | --- |
+| Build e testes de jogo e baralho | Caio | PR #42; Jenkinsfile e testes de domínio |
+| Backend e cobertura | Henrique | PR #44; JUnit e cobertura Python |
+| Frontend/Cypress | Mateus | PR #45; unitários JavaScript e Cypress |
+| Deploy | Fernando | PRs #25 e #46; validação do SHA publicado |
+
+O Jenkinsfile exige que domínio, backend e frontend aprovem o mesmo SHA antes
+de publicar. Build instala as dependências e os stages seguintes executam as
+suítes e arquivam os relatórios. GitHub Actions não é usado.
+
+## Testes locais executados
+
+A validação foi feita em cópia isolada no SHA
+`bc41644a0f8095c061eaf1e5855cbd9e1a05bfa2`. Sua árvore é idêntica à main
+`ddf7cdc`: `git diff ddf7cdc bc41644 --stat` não apresenta diferenças.
+Alterações de testes existentes no checkout de trabalho não participaram dessa
+validação.
+
+| Comando | Diretório | Resultado |
+| --- | --- | --- |
+| `python -m pytest tests/ -q` | `backend/` | 99 aprovados |
+| `python -m unittest discover -s scripts/ci/tests -q` | Raiz | 9 aprovados |
+| `python scripts/ci/frontend.py` | Raiz | 40 unitários JavaScript e 38 Cypress aprovados |
+
+Total: **186 testes aprovados**. Os 38 Cypress incluem quatro cenários com
+Flask e SQLite reais; os demais verificam a interface com respostas simuladas.
+O executor inicia servidor e banco temporários e faz a limpeza ao terminar.
+
+Relatórios gerados na cópia de validação:
+
+- `frontend/reports/frontend/unit.txt`: resultado dos unitários JavaScript.
+- `frontend/reports/frontend/lcov.info`: cobertura JavaScript.
+- `frontend/reports/cypress/index.html`: relatório HTML Cypress.
+- `frontend/reports/flask.log`: log do servidor temporário.
+
+Esses artefatos são locais e não acompanham o clone. Para gerar relatórios
+Python e JUnit, usar os comandos de cobertura do README ou executar o Jenkins.
+A cobertura Python do build Jenkins foi conferida posteriormente, conforme o registro abaixo.
+
+## Builds Jenkins registrados
+
+| Trabalho | Evidência registrada | Limite |
+| --- | --- | --- |
+| Caio, PR #72 | README registra build #2 do Jenkins do Caio, SHA `15f257b`, SUCCESS | Build anterior à main final |
+| Caio, PR #76 | README registra build #3, SHA `54bccbc`, SUCCESS | Anterior à integração final |
+| Fernando, PR #73 | Aprovação de Caio registra build #5, SHA `0255d84`, SUCCESS, DEPLOY desmarcado | Registro na revisão da PR; execução em Jenkins local |
+| Mateus, PR #74 | Comentário registra build #6 em `cd466e5`; aprovação posterior em `7f1e38f` registra unitários e Cypress verdes | O build citado não corresponde ao SHA final corrigido |
+| Henrique, PR #75 | Descrição registra testes locais verdes | Sem link de build antes/depois registrado na PR consultada |
+
+Links e registros: [PR #72](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/72),
+[PR #73](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/73),
+[PR #74](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/74),
+[PR #75](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/75) e
+[PR #76](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/76).
+
+### Build final confirmado no Jenkins
+
+Em **12/11/2026**, após migrar o Jenkins local para o Docker Desktop, foram
+conferidos os metadados, o log e os artefatos do
+[build #20 de EntreLinhas-Deploy](http://localhost:8081/job/EntreLinhas-Deploy/20/):
+
+| Evidência | Resultado |
+| --- | --- |
+| Início | 11/11/2026 às 20:18:46 UTC (17:18:46 em São Paulo) |
+| Acionamento | SCM change, registrado no log |
+| SHA validado e publicado | `ddf7cdc9531c6d3f08f9a11c6ddcfb725567bfde` |
+| Resultado | **SUCCESS** |
+| Domínio — JUnit | 21 testes, zero falhas/erros/ignorados |
+| Backend — JUnit | 78 testes, zero falhas/erros/ignorados |
+| Proteção e limpeza da CI | 9 aprovados |
+| Unitários JavaScript | 40 aprovados, zero falhas |
+| Cypress | 38 aprovados em seis specs |
+| Cobertura Python agregada | 356/387 linhas, **91,99%**, em `reports/backend/coverage.xml` |
+| Artefatos arquivados | 46 arquivos |
+| Deploy | Log confirma o SHA publicado, interface e banco disponíveis |
+
+O log termina com `Finished: SUCCESS`. Os JUnit estão em
+`reports/domain/junit.xml` e `reports/backend/junit.xml`; os resultados das
+outras suítes estão em `reports/backend/ci-guards.txt`,
+`frontend/reports/frontend/unit.txt` e nos relatórios Cypress arquivados.
+O Jenkins exige login para acesso à API e aos relatórios. A conferência foi
+realizada por leitura dos arquivos no container autorizado, sem alterar a
+autenticação. Os links `localhost` só abrem na máquina que hospeda o Jenkins;
+para a defesa, usar o Jenkins autenticado ou exportar seus artefatos.
+
+A observação anterior de acesso HTTP 403 permanece explicada pela exigência
+de login; ela não impediu a conferência dos arquivos do build após a migração.
+O build comprova o código do SHA acima, não alterações documentais locais
+feitas depois dele.
+
+## Aplicação publicada
+
+Endereço: [Jogar Entre Linhas](https://entrelinhas-production-7e6e.up.railway.app/static/index.html).
+Na conferência de 11/11/2026, as consultas públicas retornaram:
+
+- `/static/release.json`: commit `ddf7cdc9531c6d3f08f9a11c6ddcfb725567bfde`.
+- `/health`: `{"status":"ok"}`.
+
+Isso comprova a versão e a saúde observadas naquele momento. Não identifica
+sozinho o build Jenkins que publicou a versão.
+
+## Processo, histórias e revisões
+
+As cinco histórias #57, #59, #60, #61 e #63 estão encerradas. A autoria foi
+conferida no GitHub: Henrique (#57), Caio (#59), Mateus (#63) e Fernando
+(#60/#61). A documentação foi integrada pelas PRs #58, #62, #64 e #65.
+
+As PRs de refactoring #72, #73 e #74 têm aprovação registrada por outro membro.
+#75 e #76 foram integradas sem aprovação formal no GitHub; a revisão local da
+#76 e os testes estão registrados nesta conferência. Não se declara que uma
+revisão posterior aconteceu antes do merge.
+
+Métrica de issues encerradas, pela API do GitHub e campo `closedAt`, em UTC,
+antes das atualizações da auditoria: 8 em 25–31/10 (#48–#51, #57, #59–#61) e
+2 em 01–11/11 (#66 e #8). A #63 foi encerrada depois desse levantamento em
+11/11. A contagem inclui tarefas de documentação e não mede produtividade
+individual. Não há registro de cadência fixa de reuniões que permita quantificá-las.
+
+## Refactorings
+
+### Diálogos e participantes do turno — Fernando Stein (issue #69, PR #73)
+
+Entrega de Fernando Stein (@Stenishh), tarefa [#69](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/69),
+implementada na [PR #73](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/73).
+
+| Smell identificado | Refactoring aplicado | Motivo e comportamento preservado |
+| --- | --- | --- |
+| `app.js` concentrava apresentação, eventos e foco dos diálogos junto do estado e das chamadas à API. | **Extract Module:** extrair `frontend/static/js/ui/dialogos.js`. | Concentrar o ciclo de vida dos diálogos em um módulo que recebe nome, fase e retorno de foco. Preserva os textos de início, acerto, erro e tempo esgotado, o fechamento por botão/Escape e o foco após fechar; não move o estado da partida. |
+| `renderizarPartida` misturava criação de elementos com cálculo dos participantes ativos e de seus papéis. | **Extract Function:** extrair `obterParticipantesDoTurno` em `frontend/static/js/utils/turno.js`. | Permitir testar a decisão sem DOM. Preserva nomes, ordem, autor da dica, palpite da outra pessoa em dupla, palpite coletivo com 3 a 6 pessoas e ausência de participantes ativos na fase final. |
+
+Os testes unitários em `frontend/tests/turno.test.mjs` cobrem todos os autores de
+dica possíveis em equipes de 2 a 6 jogadores, nas fases dica, palpite e final.
+Os cenários Cypress em `dialogos.cy.js` e `participantes-turno.cy.js` verificam
+abertura, fechamento, foco e a apresentação dos papéis na interface.
+Os testes de cronômetro também verificam o diálogo de tempo esgotado, incluindo
+expiração na última carta, o botão “Ver resultado” e o foco no resultado final.
+
+Evidências atuais no Jenkins local, com `DEPLOY=false` e relatórios arquivados:
+
+- Base antes dos refactorings de Fernando, já com a PR #74 de Mateus:
+  [build #2](http://localhost:8081/job/EntreLinhas-Refactoring-69/2/), commit
+  `5f3a595167e18431ca36cc118cfdf1851ab89168`, **SUCCESS**:
+  81 testes Python, 19 unitários JavaScript e 27 cenários Cypress.
+- Integração depois dos refactorings de Fernando:
+  [build #1](http://localhost:8081/job/EntreLinhas-Refactoring-69/1/), commit
+  `2edc7c833608c6d810dbdb419439287e0875990c`, **SUCCESS**:
+  81 testes Python, 40 unitários JavaScript, 38 cenários Cypress e 9 testes de
+  proteção da CI; cobertura Python agregada de aproximadamente 92%.
+
+O job isolado `EntreLinhas-Refactoring-69` foi recriado em 11/11/2026, com polling
+removido. Por isso a numeração recomeçou em #1. Os builds #4 e #6 da instalação
+anterior, registrados na PR, não estão disponíveis nesta instância; os links
+acima são as evidências acessíveis atuais e exigem acesso ao Jenkins local.
+
+O registro histórico anterior apontava **SUCCESS** para a base `3ee8280`
+(build #4: 73 testes Python, 4 unitários JavaScript e 26 cenários Cypress) e para
+`125471c` (build #6: 73 testes Python, 25 unitários JavaScript e 36 cenários Cypress).
+Esses registros históricos não substituem os novos builds da integração.
+
+A branch incorpora a PR #74 de Mateus (#68), integrada na `main` pelo commit
+`5f3a595167e18431ca36cc118cfdf1851ab89168`. O novo cenário cobre expiração na última
+carta. A validação do commit final que inclui este registro fica vinculada na PR.
+A aprovação independente está registrada na PR #73. O build #20 do job
+`EntreLinhas-Deploy` validou a main integrada `ddf7cdc` e publicou essa versão;
+veja as [evidências da entrega](#evidências-da-entrega). Os builds
+isolados citados acima não publicaram em produção.
+
+### Regras e montagem do estado — Caio Rodrigues (issues #66 e #8, PRs #72 e #76)
+
+Refactorings sem mudança de comportamento. Antes de cada um, testes de
+caracterização fixaram o comportamento, e os mesmos testes passam depois:
+`backend/tests/test_placar_tabuleiro.py` para o placar e o JSON completo de
+`montar_estado` (1 e 2) e `backend/tests/test_regras_rodada.py` para a regra
+da dica e o avanço da rodada (3 e 4).
+
+| # | Smell | Refactoring aplicado | Por quê | PR | Autoria |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Código duplicado: acertos, erros e pontuação final calculados em cinco trechos de `backend/app.py` e em `backend/jogo.py`, ora somando `acertou`, ora contando coordenadas | Extract Function: `calcular_placar` e `coordenadas_acertadas` em `backend/jogo.py`, usadas pela rota `/placar`, pelo palpite, pelo tempo esgotado, pelo encerramento e por `montar_estado` | A regra de pontuação passa a existir em um só lugar; mudar a contagem não exige lembrar de cinco rotas | [PR #72](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/72) | Caio Rodrigues |
+| 2 | Função longa: `montar_estado` monta tabuleiro, placar, tempo, desempenho e resumo | Extract Function: `montar_tabuleiro(palavras, acertos)` em `backend/jogo.py` | Separa a composição da grade 3 × 3 do restante do estado e permite testá-la isoladamente, com o mesmo JSON | [PR #72](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/72) | Caio Rodrigues |
+| 3 | Regra de domínio dentro da rota: `rota_dica` validava a dica em uma condição longa e repetia a mensagem de erro em dois `return` | Extract Function: `dica_valida(dica)` em `backend/jogo.py` | A regra da dica ganha nome e fica junto das outras regras; a rota só lê a entrada e responde | [PR #76](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/76) | Caio Rodrigues |
+| 4 | Código duplicado: o cálculo do próximo índice e da fase (`dica` ou `final`) estava repetido em `_penalizar_tempo` e em `rota_palpite` | Extract Function: `proxima_rodada(progresso)` em `backend/jogo.py` | O fim da partida passa a ser decidido em um só lugar, tanto no palpite quanto no tempo esgotado | [PR #76](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/76) | Caio Rodrigues |
+
+Pipeline do Jenkins antes e depois das alterações 1 e 2, com disparo manual e
+`DEPLOY` desmarcado:
+
+| Momento | SHA | Build | Resultado |
+| --- | --- | --- | --- |
+| Antes (base na `main`) | `3ee82801008e4b722bc8243e3c2bdbefff5ea509` | #4, no Jenkins local do Fernando | SUCCESS |
+| Depois (SHA final da PR #72) | `15f257bf32baa1eb66ae9c3232ddb210072af5ec` | [#2 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/2/), no Jenkins local do Caio | SUCCESS: 21 testes de jogo e baralho, 60 de backend e 26 do Cypress |
+
+Os links apontam para o Jenkins local de quem executou e só abrem nessa máquina;
+por isso os prints do fim do console ficam em `docs/evidencias/`. O commit de
+integração na `main`, `57ebb50`, tem o mesmo conteúdo do SHA final testado.
+
+![Build #4 no Jenkins local do Fernando: CI aprovada no SHA 3ee8280](docs/evidencias/jenkins-build-4-fernando.png)
+
+![Build #2 do job EntreLinhas-Deploy: CI aprovada no SHA 15f257b](docs/evidencias/jenkins-build-2.png)
+
+Pipeline do Jenkins antes e depois das alterações 3 e 4, no Jenkins local do
+Caio, com disparo manual e `DEPLOY` desmarcado:
+
+| Momento | SHA | Build | Resultado |
+| --- | --- | --- | --- |
+| Antes (base na `main`) | `57ebb50d9e8c8bd60e50232cd2a045a41241f2c8`, de conteúdo idêntico ao do `15f257b` | [#2 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/2/), executado no `15f257b` | SUCCESS: 21 testes de jogo e baralho, 60 de backend e 26 do Cypress |
+| Depois (PR #76) | `54bccbca64b36de4957fc557f090c000201e60cf` | [#3 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/3/) | SUCCESS: 21 testes de jogo e baralho, 78 de backend e 26 do Cypress |
+
+O build #3 testou o último commit de código da PR #76; os commits seguintes da
+PR alteram apenas o README.
+
+![Build #3 do job EntreLinhas-Deploy: CI aprovada no SHA 54bccbc](docs/evidencias/jenkins-build-3.png)
+
+Antes do merge, a PR #76 recebeu a `main` com as PRs #73, #74 e #75. O antes e
+depois foi repetido sobre essa base, também com disparo manual e `DEPLOY`
+desmarcado:
+
+| Momento | SHA | Build | Resultado |
+| --- | --- | --- | --- |
+| Antes (`main` sem a PR #76) | `5ef0d8603ea79dd00aea3bcd8a87f0e51599194a` | [#8 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/8/) | SUCCESS: 21 testes de jogo e baralho, 60 de backend e 38 do Cypress |
+| Depois (PR #76 com a `main`) | `bc41644a0f8095c061eaf1e5855cbd9e1a05bfa2` | [#7 do job `EntreLinhas-Deploy`](http://localhost:8081/job/EntreLinhas-Deploy/7/) | SUCCESS: 21 testes de jogo e baralho, 78 de backend e 38 do Cypress |
 
 ## Refactorings (Issue #67)
+O commit de integração na `main`, `ddf7cdc`, tem o mesmo conteúdo do
+`bc41644`. Os 18 testes a mais no backend são os de
+`backend/tests/test_regras_rodada.py`.
+
+![Build #8 do job EntreLinhas-Deploy: CI aprovada no SHA 5ef0d86](docs/evidencias/jenkins-build-8.png)
+
+![Build #7 do job EntreLinhas-Deploy: CI aprovada no SHA bc41644](docs/evidencias/jenkins-build-7.png)
+
+### Conexões e inicialização do banco — Henrique Rodrigues Mendonça (issue #67, PR #75)
 
 **SHA Base:** `3ee82801008e4b722bc8243e3c2bdbefff5ea509`
 
-### 1. Gerenciador de Contexto para Conexões SQLite (`get_db_connection`)
+#### 1. Gerenciador de Contexto para Conexões SQLite (`get_db_connection`)
 - **Code Smell:** *Resource Leak / Unclosed Connections* (abertura e fechamento manual de conexões com risco de vazamento ou locks pendentes em caso de exceções nas rotas).
 - **Refactoring Aplicado:** *Extract Context Manager* (criação de `get_db_connection` em `backend/db.py` com gerenciamento automático do ciclo de vida, `rollback` em falhas e `close` garantido no `finally`).
 - **Por quê:** Garante que toda conexão com o banco SQLite seja encerrada deterministicamente ao final de cada requisição HTTP em `backend/app.py`, evitando vazamento de recursos e contenção de conexões no SQLite.
 - **Autor:** Henrique Rodrigues Mendonça
 - **PR:** [#75](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/79)
 
-### 2. Extração das Etapas de Inicialização do Banco de Dados
+#### 2. Extração das Etapas de Inicialização do Banco de Dados
 - **Code Smell:** *Long Method / Mixed Responsibilities* (a função `criar_tabelas` acumulava DDL de schemas, carga de dados iniciais e aplicação de migrações em um único bloco de código).
 - **Refactoring Aplicado:** *Extract Method* (divisão em `_inicializar_schemas`, `_popular_palavras_iniciais` e `_aplicar_migracoes_banco` em `backend/db.py`).
 - **Por quê:** Melhora a legibilidade, isola responsabilidades de infraestrutura de dados e garante idempotência limpa na subida da API.
 - **Autor:** Henrique Rodrigues Mendonça
 - **PR:** [#75](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/79)
 
+### Tabuleiro da interface — Mateus Mendonça (issue #68, PR #74)
+
+Refactorings sem mudança de comportamento. Antes de cada um, testes de
+caracterização em `frontend/tests/tabuleiro.test.mjs` e um cenário em
+`frontend/cypress/e2e/interface-partida.cy.js` fixaram a estrutura da grade,
+a seleção única, o foco e os atributos de acessibilidade; os mesmos testes
+passam depois.
+
+| # | Smell | Refactoring aplicado | Por quê | PR | Autoria |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Módulo com várias responsabilidades: `frontend/static/js/app.js` reúne navegação, estado da partida e a renderização e seleção do tabuleiro | Extract Module: `frontend/static/js/ui/tabuleiro.js`, com interface explícita (`renderizarTabuleiro`, `selecionarCelula`, `atualizarSelecao`, `obterCelulaSelecionada`, `obterCelulaParaFoco`, `vincularSelecao`) | O tabuleiro deixa de depender das variáveis globais do `app.js` (recebe `podeSelecionar` por parâmetro), pode ser testado sem navegador e libera o `app.js` para a extração da PR de Fernando | [PR #74](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/74) | Mateus Mendonça |
+| 2 | Função longa: `renderizarTabuleiro` monta cabeçalhos, linhas e células em uma única função | Extract Function: `criarCabecalho`, `criarLinha` e `criarCelulaDeCoordenada` em `frontend/static/js/ui/tabuleiro.js` | Cada função monta um nível da grade (cabeçalho, linha, célula), o que facilita testar a estrutura e os atributos ARIA isoladamente, com o mesmo DOM | [PR #74](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/74) | Mateus Mendonça |
+
+Base das alterações: commit `3ee8280` da `main`. Os links do pipeline verde
+antes e depois (com `DEPLOY` desmarcado) ficam registrados na PR.
+
 ## Uso de IA
 
-Esta seção está em construção. É necessário reunir os relatos de todos os
-integrantes antes da entrega, incluindo ferramentas/modelos efetivamente usados,
-finalidade, prompts reais, avaliação das respostas e trabalho manual.
+O grupo utilizou **GPT-6 e GPT-6.1 no Codex**, conforme declaração registrada
+neste projeto. A IA foi usada **individualmente**, por cada integrante em suas
+próprias sessões, como apoio às tarefas sob sua responsabilidade. O trabalho
+coletivo foi integrado pelo GitHub, por commits, pull requests e revisões.
 
-O grupo utilizou **GPT-6 e GPT-6.1 no Codex**, conforme declaração do integrante
-responsável por esta atualização. A ferramenta auxiliou na análise de requisitos,
-consulta de código, histórico e PRs, execução de testes e elaboração da documentação.
-Os usos específicos dos demais integrantes ainda devem ser consolidados.
+**A grande maioria do código foi gerada com auxílio de IA.** As ideias para a
+adaptação do jogo, as funcionalidades, as decisões de implementação e as
+melhorias foram pensadas e definidas pelo grupo. Os integrantes usaram a IA
+para transformar essas decisões em código e apoiar os ajustes ao longo do
+desenvolvimento.
+
+Além disso, o integrante Mateus Mendonça utilizou o **Gemini 3.5 Flash Lite** para suporte ao desenvolvimento e refatoração do módulo de tabuleiro e grade (`tabuleiro.py`), estabilização de testes E2E com Cypress, configuração do pipeline no Jenkins e ajustes de lógica e asserções com mocks nos testes do cronômetro (`backend/tests/test_cronometro.py`).
+
+### Finalidades e dinâmica de uso
+
+A ferramenta auxiliou na geração e no ajuste de código, refatorações, testes,
+documentação, design da interface, investigação de erros e organização das
+entregas. Também foi usada para consultar o histórico, revisar PRs, executar
+comandos e testes e comparar requisitos com a implementação.
+
+No frontend, o apoio envolveu HTML, CSS e JavaScript, integração com a API e
+cenários Cypress. No backend, envolveu análise das regras, persistência SQLite
+e testes Python. Na infraestrutura, auxiliou na configuração e investigação
+do Docker, Jenkins e Railway. A documentação registra ainda seu uso para
+conferir o PDF da NP2 e organizar issues e o GitHub Projects.
+
+O uso individual não significa que toda alteração tenha sido escrita sem
+assistência. Nesta sessão de integração, por exemplo, o agente executou testes,
+atualizou o Projects e realizou o merge da PR #76 após instrução do responsável.
+Essas ações são declaradas como trabalho assistido por IA.
 
 ### Skills utilizadas
 
@@ -702,43 +1176,57 @@ por esta documentação; o uso de PDF foi acompanhado nesta revisão. A lista re
 as principais skills declaradas e pode ser complementada com os relatos dos
 demais integrantes.
 
-### Exemplos de prompts para a IA CLI
+### Prompts reais e tratamento das respostas
 
-Os três exemplos abaixo foram selecionados dos pedidos utilizados pelo grupo,
-conforme relato do integrante responsável. São resumos dos prompts, sem pretensão
-de reproduzir literalmente o texto enviado à ferramenta.
+O design inicial da interface foi desenvolvido com apoio de IA a partir da
+direção visual definida pelo integrante: **tema cartoon, paleta inspirada no
+jogo físico e telas de início, partida e resultado**, em HTML, CSS e JavaScript
+vanilla. O pedido também incluía o consumo da API Flask. Esse relato já constava
+no histórico do README; o texto abaixo resume o pedido, sem apresentá-lo como
+transcrição literal da conversa original.
 
-| Exemplo | Pedido à IA | Aplicação ou resultado relatado |
-| --- | --- | --- |
-| Frontend inicial | Criar o frontend em HTML/CSS/JavaScript vanilla, com tema cartoon, paleta inspirada no jogo, telas de início, jogo e resultado e consumo da API Flask. | Apoio à implementação da interface e à comunicação com o backend. A interface entregue pode ser consultada em `frontend/static/`. |
-| Acompanhamento da evolução | Comparar o repositório com as issues #6 a #13, os testes por pessoa (com mock, sem mock e negativo), os commits e o equilíbrio das contribuições. | A análise apontou lógica de jogo duplicada e divergência entre o tabuleiro 5 × 5 e o jogo web 3 × 3. Essas pendências estão acompanhadas nas issues [#8](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/8) e [#14](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/14). |
-| Atualização do GitHub Projects | Criar e atualizar as issues do pipeline de CI/CD, registrando o status real das entregas por pessoa. | Apoio à organização das tarefas e responsabilidades no [quadro Kanban](https://github.com/orgs/C14-Inatel-2026-2/projects/3), com vínculos entre issues, PRs e evidências de execução. |
+| Aplicação | Pedido à IA e resultado no projeto |
+| --- | --- |
+| Design e frontend inicial | Criar a interface com a direção visual descrita acima, organizar o tabuleiro, os controles e as telas do fluxo da partida e integrar as ações à API Flask. O resultado está em `frontend/static/`; a interface evoluiu com feedback de palpites, nomes e turnos na [PR #41](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/41). |
+| Organização e integração do projeto | Apoiar a separação de backend e frontend, mantendo os caminhos de execução, dependências e testes coerentes. A reorganização está registrada na [PR #40](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/40). |
+| Automação de testes e publicação | Apoiar a integração dos testes Python, JavaScript e Cypress ao Jenkins, com Flask e SQLite temporários, relatórios e publicação condicionada à aprovação do mesmo commit. A implementação e os resultados estão nas [PRs #46](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/46) e [#47](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/47). |
 
-Para cada exemplo, os integrantes ainda devem registrar quais respostas foram
-aceitas, ajustadas ou descartadas e por quê, incluindo os vínculos com as alterações
-correspondentes. Os resultados acima não substituem esse relato de revisão humana.
+**Outros prompts registrados e avaliação das respostas**
 
-Também falta registrar a dinâmica de uso (individual, em dupla, revisão de PRs,
-geração de testes etc.) e quais partes cada integrante desenvolveu manualmente.
-A existência de um commit de autoria humana não comprova ausência de auxílio de IA.
+Os pedidos abaixo foram selecionados por sua relação com revisão técnica,
+preservação de comportamento e qualidade dos testes. Os dois primeiros foram
+relatados por Mateus na [PR #80](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/80);
+o terceiro foi registrado na sessão de revisão do projeto.
 
-## Pendências para a NP2
+| Prompt registrado | Aplicação e decisão sobre a resposta |
+| --- | --- |
+| “verifique se as alterações podem afetar de maneira negativa” — acompanhado do código do tabuleiro, aplicação e testes | Apoio à análise da extração do tabuleiro e das funções de composição da grade. A proposta foi **aceita com ajustes**: a revisão da [PR #74](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/74) identificou falhas no cenário de teclado; a correção final em `7f1e38f` foi aprovada após 19 testes unitários JavaScript e 27 cenários Cypress verdes. O módulo entregue é `frontend/static/js/ui/tabuleiro.js`. |
+| “desses testes, altere pra que comece a usar mock” — acompanhado de `test_cronometro.py` | Apoio às asserções de chamadas do relógio com `unittest.mock.patch`. A solução inicial foi **ajustada após revisão**: removia verificações de comportamento e foi devolvida para correção. Na [PR #80](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/80), foram restauradas as verificações de expiração, avanço do turno, penalidade única e acerto antes do prazo. O commit `f3b44fc` foi aprovado após os 20 testes do arquivo passarem com banco isolado. |
+| Auditoria do código, das PRs e dos commits para verificar os requisitos de refactoring — resumo do pedido registrado | A IA comparou o código integrado, os commits, as PRs e o README com a exigência de dois refactorings por integrante e testes/pipeline verdes antes e depois. A avaliação foi **ajustada ao escopo do enunciado**: distinguiu evidências individuais da validação coletiva e reconheceu que não era exigido um build exclusivo por PR. Os registros consultados estão na seção [Refactorings](#refactorings). |
 
-- [ ] Receber as histórias de cada integrante e consolidar links, critérios, prioridades, status e rastreabilidade.
-- [ ] Complementar as evidências do Kanban no Projects com frequência de acompanhamento, reuniões e métricas reais.
-- [ ] Completar o relato da dinâmica e das lições aprendidas pelos integrantes.
-- [ ] Completar “Uso de IA” com todos os membros, três prompts reais e decisões sobre as respostas.
-- [ ] Conferir com o professor a exigência de um **job por integrante**: o Jenkinsfile atual tem um único job com stages por integrante.
-- [ ] Ampliar e evidenciar a participação dos membros nas revisões de PRs.
-- [ ] Executar o pipeline no SHA final e apresentar os relatórios daquela versão.
-- [ ] Preparar todos os integrantes para demonstrar código, testes, commits, PRs e decisões em uma defesa Q&A de até 20 minutos.
+Esses casos mostram como as respostas foram avaliadas e corrigidas antes da
+integração. A execução dos testes, os comentários de revisão e os commits
+identificam o resultado efetivamente validado de cada alteração.
 
-Limitações técnicas já acompanhadas: unificação/documentação das regras entre
-`backend/jogo.py` e `backend/src/jogo.py` ([issue #8](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/8)),
-transações e recuperação completa do estado ([issue #9](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/9))
-e validação após essa integração ([issue #13](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/13)).
-Persistir dados no SQLite não equivale a oferecer retomada completa da partida
-pela interface após recarregar a página.
+
+### Participação humana e partes feitas sem IA
+
+O grupo foi responsável pela concepção da adaptação web do jogo, pela definição
+das funcionalidades e pela escolha das melhorias. As decisões sobre o que
+implementar e como a aplicação deveria funcionar partiram dos integrantes,
+que orientaram individualmente a IA na produção e no ajuste do código.
+O jogo físico *Entre Linhas*, que serviu de referência, é da PaperGames.
+
+A contribuição humana concentrou-se nessas ideias e decisões, na divisão das
+tarefas e na avaliação dos resultados em relação ao que o grupo pretendia
+entregar. A IA teve participação ampla na escrita do código, dos testes e da
+documentação, além de apoiar revisões e operações de integração. Por isso,
+autoria de um commit não é apresentada como prova de programação manual.
+
+Não se declara um arquivo ou módulo inteiro como escrito exclusivamente
+“à mão” sem identificação específica pelo integrante responsável. O trabalho
+intelectual do grupo e o uso amplo de código gerado por IA são declarados
+em conjunto, conforme o relato dos integrantes.
 
 ## Estrutura atual do projeto
 
@@ -752,8 +1240,7 @@ entre-linhas/
 │   ├── src/                 # Classes de domínio
 │   ├── tests/               # Testes Python
 │   ├── pytest.ini
-│   ├── requirements.txt     # Dependências Python
-│   └── README.md
+│   └── requirements.txt     # Dependências Python
 ├── frontend/                # Interface e ferramentas JavaScript
 │   ├── static/              # HTML, CSS e JavaScript
 │   ├── tests/               # Testes unitários JavaScript
@@ -761,10 +1248,8 @@ entre-linhas/
 │   ├── cypress.config.js
 │   ├── package.json         # Dependências e comandos npm
 │   ├── package-lock.json    # Versões transitivas fixadas
-│   ├── .nvmrc
-│   └── README.md
+│   └── .nvmrc
 ├── docker/                  # Infraestrutura dos containers
-├── docs/                    # Documentação compartilhada
 ├── scripts/ci/              # Execução de testes frontend e proteção do deploy
 ├── Dockerfile               # Backend e imagem integrada Railway
 ├── compose.yaml
@@ -773,4 +1258,4 @@ entre-linhas/
 └── README.md
 ```
 
-Para executar e manter a interface web, consulte o [guia do front-end](frontend/README.md).
+Toda a documentação do projeto está concentrada neste README.

@@ -23,6 +23,26 @@ def jogador_da_rodada(partida, progresso):
     return progresso["indice"] % partida["num_jogadores"] + 1
 
 TEMPO_PALPITE = 120
+TAMANHO_MAXIMO_DICA = 60
+
+
+def dica_valida(dica):
+    """A dica é uma única palavra, com até 60 caracteres sem os espaços das pontas."""
+    return (
+        isinstance(dica, str)
+        and len(dica.split()) == 1
+        and len(dica.strip()) <= TAMANHO_MAXIMO_DICA
+    )
+
+
+def proxima_rodada(progresso):
+    """Índice e fase depois que a carta atual é jogada ou descartada.
+
+    A partida volta para a fase de dica até a última carta; depois dela, fase final.
+    """
+    novo_indice = progresso["indice"] + 1
+    fase = "final" if novo_indice == len(progresso["cartas"]) else "dica"
+    return novo_indice, fase
 
 
 def segundos_restantes(progresso):
@@ -62,9 +82,36 @@ def avaliar_desempenho(acertos, jogadas, total_cartas):
     }
 
 
+def coordenadas_acertadas(jogadas):
+    """Coordenadas já posicionadas no tabuleiro."""
+    return {jogada["coordenada_correta"] for jogada in jogadas if jogada["acertou"]}
+
+
+def calcular_placar(jogadas):
+    """Acertos e erros da partida; os acertos também são a pontuação final.
+
+    Cada carta sai uma única vez e uma coordenada preenchida não aceita novo
+    palpite, então contar coordenadas distintas equivale a somar os acertos.
+    """
+    acertos = len(coordenadas_acertadas(jogadas))
+    return {"acertos": acertos, "erros": len(jogadas) - acertos}
+
+
+def montar_tabuleiro(palavras, acertos):
+    """Grade 3 × 3: três palavras nas linhas, três nas colunas e o estado das nove células."""
+    return {
+        "linhas": [{"id": id_, "palavra": palavra} for id_, palavra in zip(LINHAS, palavras[:3])],
+        "colunas": [{"id": id_, "palavra": palavra} for id_, palavra in zip(COLUNAS, palavras[3:])],
+        "celulas": [
+            {"coordenada": carta, "estado": "acerto" if carta in acertos else "vazia"}
+            for carta in [f"{linha}{coluna}" for linha in LINHAS for coluna in COLUNAS]
+        ],
+    }
+
+
 def montar_estado(partida, progresso, jogadas, mensagem=None):
-    acertos = {jogada["coordenada_correta"] for jogada in jogadas if jogada["acertou"]}
-    placar = {"acertos": len(acertos), "erros": len(jogadas) - len(acertos)}
+    acertos = coordenadas_acertadas(jogadas)
+    placar = calcular_placar(jogadas)
     cartas = progresso["cartas"]
     indice = progresso["indice"]
     fase = progresso["fase"]
@@ -79,14 +126,7 @@ def montar_estado(partida, progresso, jogadas, mensagem=None):
         "jogador_dica": jogador_da_rodada(partida, progresso),
         "carta_secreta": cartas[indice] if fase == "dica" else None,
         "dica": progresso["dica"] if fase == "palpite" else None,
-        "tabuleiro": {
-            "linhas": [{"id": id_, "palavra": palavra} for id_, palavra in zip(LINHAS, progresso["palavras"][:3])],
-            "colunas": [{"id": id_, "palavra": palavra} for id_, palavra in zip(COLUNAS, progresso["palavras"][3:])],
-            "celulas": [
-                {"coordenada": carta, "estado": "acerto" if carta in acertos else "vazia"}
-                for carta in [f"{linha}{coluna}" for linha in LINHAS for coluna in COLUNAS]
-            ],
-        },
+        "tabuleiro": montar_tabuleiro(progresso["palavras"], acertos),
         "placar": placar,
         "turno": progresso["indice"],
         "duracao_segundos": duracao,
