@@ -1139,6 +1139,11 @@ desenvolvimento.
 
 Além disso, o integrante Mateus Mendonça utilizou o **Gemini 3.5 Flash Lite** para suporte ao desenvolvimento e refatoração do módulo de tabuleiro e grade (`tabuleiro.py`), estabilização de testes E2E com Cypress, configuração do pipeline no Jenkins e ajustes de lógica e asserções com mocks nos testes do cronômetro (`backend/tests/test_cronometro.py`).
 
+O integrante Caio Rodrigues utilizou o **Claude Code** (Anthropic), modelos
+Claude Fable 5.2 e Claude Opus 5.5, em sessões individuais. A ferramenta apoiou os refactorings
+das issues #66 e #8, os testes de caracterização, a documentação no README, a
+leitura do PDF da NP2 e dos logs do Jenkins e a preparação da revisão da PR #73.
+
 ### Finalidades e dinâmica de uso
 
 A ferramenta auxiliou na geração e no ajuste de código, refatorações, testes,
@@ -1207,6 +1212,22 @@ Esses casos mostram como as respostas foram avaliadas e corrigidas antes da
 integração. A execução dos testes, os comentários de revisão e os commits
 identificam o resultado efetivamente validado de cada alteração.
 
+**Prompts de Caio Rodrigues no Claude Code**
+
+Os pedidos abaixo preservam a redação original enviada à ferramenta.
+
+| Prompt real | Resposta e tratamento |
+| --- | --- |
+| “ultima coisa antes do commit, o mateus disse que vai pra 3x3 mesmo, pra fechar a issue 8 eu coloco algum comentario sobre?” | A IA sugeriu registrar na [issue #8](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/8) que a dimensão da classe `Tabuleiro` fica na [issue #14](https://github.com/C14-Inatel-2026-2/EntreLinhas/issues/14). **Aceita**: o comentário foi publicado por Caio antes do fechamento da issue. |
+| “Revise antes e me mostre o que aconteceui” | Pedido de revisão das alterações da issue #8 antes do commit. A revisão apontou que um trecho do README escrito pela própria IA (“leitura das entradas”) não descrevia o que `backend/app.py` faz. **Ajustada**: o texto passou a “validação das entradas” antes do commit `e547c65`. |
+| “resolva o conflito que tiver e mostre pra mim o que foi mudado” | A IA preparou localmente a resolução do conflito da [PR #76](https://github.com/C14-Inatel-2026-2/EntreLinhas/pull/76) com a `main`. **Descartada**: o merge `bc41644` já havia sido enviado ao GitHub pelo agente de outro integrante. A resolução local foi abandonada e a branch foi alinhada ao remoto. |
+
+O código dos refactorings e dos testes de Caio foi gerado com auxílio da IA e
+revisado por ele antes de cada commit, sempre com autorização explícita. O texto
+da revisão da PR #73 foi preparado com IA e publicado por Caio. Foram feitos
+manualmente por ele: a decisão de manter a classe `Jogo`, a configuração do job
+no Jenkins local, o disparo dos builds, os prints, a abertura das PRs, os
+comentários nas issues e a comunicação com a equipe.
 
 ### Participação humana e partes feitas sem IA
 
